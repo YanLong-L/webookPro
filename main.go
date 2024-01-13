@@ -10,6 +10,7 @@ import (
 	"time"
 	"webookpro/config"
 	"webookpro/internal/repository"
+	"webookpro/internal/repository/cache"
 	"webookpro/internal/repository/dao"
 	"webookpro/internal/service"
 	"webookpro/internal/web"
@@ -80,10 +81,19 @@ func initDB() *gorm.DB {
 	return db
 }
 
+// initRDB 初始化redis
+func initRDB() redis.Cmdable {
+	return redis.NewClient(&redis.Options{
+		Addr: config.Config.Redis.Addr,
+	})
+}
+
 // initUser 初始化User服务
 func initUser(db *gorm.DB, server *gin.Engine) {
 	userDAO := dao.NewUserDAO(db)
-	userRepo := repository.NewUserRepository(userDAO)
+	rdb := initRDB()
+	userCache := cache.NewRedisUserCache(rdb)
+	userRepo := repository.NewUserRepository(userDAO, userCache)
 	userService := service.NewUserService(userRepo)
 	userHandler := web.NewUserHandler(userService)
 	userHandler.RegisterRoutes(server)

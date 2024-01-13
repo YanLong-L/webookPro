@@ -52,3 +52,13 @@ func (u *UserService) SignUp(ctx context.Context, user domain.User) error {
 	user.Password = string(bcryptPassword)
 	return u.repo.Create(ctx, user)
 }
+
+// Profile
+func (u *UserService) Profile(ctx context.Context, id int64) (domain.User, error) {
+	user, err := u.repo.FindById(ctx, id)
+	if err != nil {
+		return domain.User{}, err
+
+	}
+	return user, err
+}

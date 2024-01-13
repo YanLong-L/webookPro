@@ -123,7 +123,7 @@ func (u *UserHandler) LoginJWT(ctx *gin.Context) {
 		Uid:       user.Id,
 		UserAgent: ctx.Request.UserAgent(),
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)), // 暂时设置成1分钟过期
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)), // 暂时设置成1分钟过期
 		},
 	})
 	tokenStr, _ := tokenObj.SignedString([]byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"))
@@ -179,7 +179,7 @@ func (u *UserHandler) LogOut(ctx *gin.Context) {
 	ctx.String(http.StatusOK, "退出登录成功")
 }
 
-// Profile 用户信息
+// ProfileJWT 用户信息
 func (u *UserHandler) ProfileJWT(ctx *gin.Context) {
 	uc, ok := ctx.Get("claims")
 	if !ok {
@@ -194,6 +194,12 @@ func (u *UserHandler) ProfileJWT(ctx *gin.Context) {
 		return
 	}
 	userId := claims.Uid
+	user, err := u.svc.Profile(ctx, userId)
+	if err != nil {
+		ctx.String(http.StatusOK, "系统错误")
+		return
+	}
+	fmt.Println(user)
 	ctx.String(http.StatusOK, fmt.Sprintf("这是userId:%v 的profile", userId))
 }
 
