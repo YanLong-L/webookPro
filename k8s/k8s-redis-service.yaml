@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: webookpro-live-redis
+spec:
+  selector:
+    app: webook-live-redis
+  ports:
+    - protocol: TCP
+      port: 11479
+#      Redis 默认端口
+      targetPort: 6379
+  type: LoadBalancer

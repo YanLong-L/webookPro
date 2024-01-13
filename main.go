@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 	"strings"
 	"time"
+	"webookpro/config"
 	"webookpro/internal/repository"
 	"webookpro/internal/repository/dao"
 	"webookpro/internal/service"
@@ -22,7 +23,7 @@ func initWebServer() *gin.Engine {
 
 	// 设置限流中间件
 	redisClient := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
+		Addr: config.Config.Redis.Addr,
 	})
 	server.Use(ratelimit.NewBuilder(redisClient, time.Second, 100).Build())
 
@@ -67,7 +68,7 @@ func initWebServer() *gin.Engine {
 // initDB 初始化gormdb
 func initDB() *gorm.DB {
 	// 初始化db
-	db, err := gorm.Open(mysql.Open("root:root@tcp(127.0.0.1:13316)/webookpro"), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(config.Config.DB.DSN), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
