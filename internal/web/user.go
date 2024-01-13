@@ -199,8 +199,7 @@ func (u *UserHandler) ProfileJWT(ctx *gin.Context) {
 		ctx.String(http.StatusOK, "系统错误")
 		return
 	}
-	fmt.Println(user)
-	ctx.String(http.StatusOK, fmt.Sprintf("这是userId:%v 的profile", userId))
+	ctx.String(http.StatusOK, fmt.Sprintf("这是user:%#v 的profile", user))
 }
 
 // Profile 用户信息
