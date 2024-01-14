@@ -31,7 +31,7 @@ func (svc *CodeService) Send(ctx context.Context, biz string, phone string) erro
 		return err
 	}
 	// 2. 成功记入缓存后，发送验证码
-	return svc.sms.Send(ctx, codeTplId, []string{phone}, code)
+	return svc.sms.Send(ctx, codeTplId, []string{code}, phone)
 }
 
 // Verify 校验验证码

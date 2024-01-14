@@ -12,6 +12,8 @@ import (
 	"webookpro/internal/service"
 )
 
+const biz = "login"
+
 type UserHandler struct {
 	emailExp    *regexp.Regexp
 	passwordExp *regexp.Regexp
@@ -133,7 +135,7 @@ func (u *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
 		return
 	}
 	// 发送验证码
-	err = u.codeSvc.Send(ctx, "login", req.Phone)
+	err = u.codeSvc.Send(ctx, biz, req.Phone)
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
@@ -150,7 +152,8 @@ func (u *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
 // LoginSMS 用户登录 by 用户验证码
 func (u *UserHandler) LoginSMS(ctx *gin.Context) {
 	type Req struct {
-		phone string
+		Phone string `json:"phone" binding:"required"`
+		Code  string `json:"code" binding:"required"`
 	}
 	var req Req
 	if err := ctx.Bind(&req); err != nil {
@@ -160,7 +163,7 @@ func (u *UserHandler) LoginSMS(ctx *gin.Context) {
 		})
 	}
 	// 校验手机号格式
-	ok, err := u.phoneExp.MatchString(req.phone)
+	ok, err := u.phoneExp.MatchString(req.Phone)
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
@@ -175,6 +178,44 @@ func (u *UserHandler) LoginSMS(ctx *gin.Context) {
 		})
 		return
 	}
+	// 校验验证码
+	ok, err = u.codeSvc.Verify(ctx, biz, req.Phone, req.Code)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	if !ok {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "验证码错误",
+		})
+		return
+	}
+	// 校验通过，拿到user 对象
+	user, err := u.svc.FindOrCreate(ctx, req.Phone)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	err = u.setJwtToken(ctx, user)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Code: 2,
+		Msg:  "登录成功",
+	})
+	return
 }
 
 // LoginJWT 用户登录 by jwt token
@@ -200,15 +241,11 @@ func (u *UserHandler) LoginJWT(ctx *gin.Context) {
 		return
 	}
 	// 生成 jwt token
-	tokenObj := jwt.NewWithClaims(jwt.SigningMethodHS256, UserClaims{
-		Uid:       user.Id,
-		UserAgent: ctx.Request.UserAgent(),
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)), // 暂时设置成1分钟过期
-		},
-	})
-	tokenStr, _ := tokenObj.SignedString([]byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"))
-	ctx.Header("x-jwt-token", tokenStr)
+	err = u.setJwtToken(ctx, user)
+	if err != nil {
+		ctx.String(http.StatusOK, "系统错误")
+		return
+	}
 	ctx.String(http.StatusOK, "登录成功")
 }
 
@@ -288,9 +325,18 @@ func (u *UserHandler) Profile(ctx *gin.Context) {
 	ctx.String(http.StatusOK, "这是一条默认的profile")
 }
 
-// setJwtToken 设置Jwt token
-func (u *UserHandler) setJwtToken(ctx *gin.Context) {
-
+// setJwtToken 设置jwt token
+func (u *UserHandler) setJwtToken(ctx *gin.Context, user domain.User) error {
+	tokenObj := jwt.NewWithClaims(jwt.SigningMethodHS256, UserClaims{
+		Uid:       user.Id,
+		UserAgent: ctx.Request.UserAgent(),
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)), // 暂时设置成1分钟过期
+		},
+	})
+	tokenStr, err := tokenObj.SignedString([]byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"))
+	ctx.Header("x-jwt-token", tokenStr)
+	return err
 }
 
 type UserClaims struct {

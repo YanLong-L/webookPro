@@ -2,6 +2,9 @@ package repository
 
 import (
 	"context"
+	"database/sql"
+	"github.com/gin-gonic/gin"
+	"time"
 	"webookpro/internal/domain"
 	"webookpro/internal/repository/cache"
 	"webookpro/internal/repository/dao"
@@ -25,10 +28,7 @@ func NewUserRepository(dao *dao.UserDAO, cache *cache.RedisUserCache) *UserRepos
 }
 
 func (u *UserRepository) Create(ctx context.Context, user domain.User) error {
-	return u.dao.Insert(ctx, dao.User{
-		Email:    user.Email,
-		Password: user.Password,
-	})
+	return u.dao.Insert(ctx, u.domainToEntity(user))
 }
 
 func (u *UserRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
@@ -36,11 +36,7 @@ func (u *UserRepository) FindByEmail(ctx context.Context, email string) (domain.
 	if err != nil {
 		return domain.User{}, err
 	}
-	return domain.User{
-		Id:       user.Id,
-		Email:    user.Email,
-		Password: user.Password,
-	}, err
+	return u.entityToDomain(user), err
 }
 
 func (u *UserRepository) FindById(ctx context.Context, id int64) (domain.User, error) {
@@ -57,11 +53,7 @@ func (u *UserRepository) FindById(ctx context.Context, id int64) (domain.User, e
 			return domain.User{}, err
 		}
 		// return前写入缓存
-		user = domain.User{
-			Id:       ue.Id,
-			Email:    ue.Email,
-			Password: ue.Password,
-		}
+		user = u.entityToDomain(ue)
 		var _ = u.cache.Set(ctx, user)
 		return user, err
 
@@ -70,4 +62,41 @@ func (u *UserRepository) FindById(ctx context.Context, id int64) (domain.User, e
 		return domain.User{}, err
 	}
 
+}
+
+func (u *UserRepository) FindByPhone(ctx *gin.Context, phone string) (domain.User, error) {
+	user, err := u.dao.FindByPhone(ctx, phone)
+	if err != nil {
+		return domain.User{}, err
+	}
+	return u.entityToDomain(user), err
+}
+
+// entityToDomain 实体对象转领域对象
+func (u *UserRepository) entityToDomain(user dao.User) domain.User {
+	return domain.User{
+		Id:       user.Id,
+		Email:    user.Email.String,
+		Password: user.Password,
+		Ctime:    time.UnixMilli(user.Ctime),
+		Phone:    user.Phone.String,
+	}
+}
+
+// domainToEntity 领域对象转实体对象
+func (u *UserRepository) domainToEntity(user domain.User) dao.User {
+	return dao.User{
+		Id: user.Id,
+		Email: sql.NullString{
+			String: user.Email,
+			// 我确实有手机号
+			Valid: user.Email != "",
+		},
+		Phone: sql.NullString{
+			String: user.Phone,
+			Valid:  user.Phone != "",
+		},
+		Password: user.Password,
+		Ctime:    user.Ctime.UnixMilli(),
+	}
 }

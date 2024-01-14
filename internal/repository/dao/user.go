@@ -2,7 +2,9 @@ package dao
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 	"time"
@@ -55,10 +57,20 @@ func (ud *UserDAO) FindById(ctx context.Context, id int64) (User, error) {
 	return u, err
 }
 
+func (ud *UserDAO) FindByPhone(ctx *gin.Context, phone string) (User, error) {
+	var u User
+	err := ud.db.WithContext(ctx).Where("phone = ?", phone).First(&u).Error
+	if err != nil {
+		return User{}, err
+	}
+	return u, err
+}
+
 type User struct {
-	Id       int64  `gorm:"primaryKey,autoIncrement"`
-	Email    string `gorm:"unique"`
+	Id       int64          `gorm:"primaryKey,autoIncrement"`
+	Email    sql.NullString `gorm:"unique"`
 	Password string
 	Ctime    int64
 	Utime    int64
+	Phone    sql.NullString `gorm:"unique"` // 和 email一样是唯一索引，但是null值不冲突
 }

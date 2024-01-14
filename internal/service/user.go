@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"webookpro/internal/domain"
@@ -61,4 +62,21 @@ func (u *UserService) Profile(ctx context.Context, id int64) (domain.User, error
 
 	}
 	return user, err
+}
+
+// FindOrCreate 通过phone查找用户，找不到就新建一个
+func (u *UserService) FindOrCreate(ctx *gin.Context, phone string) (domain.User, error) {
+	user, err := u.repo.FindByPhone(ctx, phone)
+	if err == nil {
+		// 说明查找到了，直接返回
+		return user, nil
+	}
+	// 没找到，新建一个并返回
+	err = u.repo.Create(ctx, domain.User{
+		Phone: phone,
+	})
+	if err != nil {
+		return domain.User{}, err
+	}
+	return u.repo.FindByPhone(ctx, phone)
 }
