@@ -15,20 +15,26 @@ import (
 type UserHandler struct {
 	emailExp    *regexp.Regexp
 	passwordExp *regexp.Regexp
+	phoneExp    *regexp.Regexp
 	svc         *service.UserService
+	codeSvc     *service.CodeService
 }
 
-func NewUserHandler(svc *service.UserService) *UserHandler {
+func NewUserHandler(svc *service.UserService, codeSvc *service.CodeService) *UserHandler {
 	const (
 		emailRegexPattern    = "^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$"
 		passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[$@$!%*#?&])[A-Za-z\d$@$!%*#?&]{8,}$`
+		phoneRegexPattern    = "^1[0-9]{10}$"
 	)
 	emailExp := regexp.MustCompile(emailRegexPattern, regexp.None)
 	passwordExp := regexp.MustCompile(passwordRegexPattern, regexp.None)
+	phoneExp := regexp.MustCompile(phoneRegexPattern, regexp.None)
 	return &UserHandler{
 		emailExp:    emailExp,
 		passwordExp: passwordExp,
+		phoneExp:    phoneExp,
 		svc:         svc,
+		codeSvc:     codeSvc,
 	}
 }
 
@@ -37,6 +43,8 @@ func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug.POST("/signup", u.SignUp)
 	ug.POST("/login", u.LoginJWT)
 	ug.GET("/profile", u.ProfileJWT)
+	ug.POST("/login_sms/code/send", u.SendLoginSMSCode)
+	ug.POST("/login_sms", u.LoginSMS)
 }
 
 // SignUp 用户注册
@@ -94,6 +102,79 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 	}
 
 	ctx.String(http.StatusOK, "注册成功")
+}
+
+// SendLoginSMSCode 发送验证码
+func (u *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
+	type Req struct {
+		Phone string `json:"phone" binding:"required"`
+	}
+	var req Req
+	if err := ctx.Bind(&req); err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "输入有误",
+		})
+	}
+	// 校验手机号格式
+	ok, err := u.phoneExp.MatchString(req.Phone)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	if !ok {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "输入有误",
+		})
+		return
+	}
+	// 发送验证码
+	err = u.codeSvc.Send(ctx, "login", req.Phone)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Code: 2,
+		Msg:  "发送成功",
+	})
+}
+
+// LoginSMS 用户登录 by 用户验证码
+func (u *UserHandler) LoginSMS(ctx *gin.Context) {
+	type Req struct {
+		phone string
+	}
+	var req Req
+	if err := ctx.Bind(&req); err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "输入有误",
+		})
+	}
+	// 校验手机号格式
+	ok, err := u.phoneExp.MatchString(req.phone)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		return
+	}
+	if !ok {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "输入有误",
+		})
+		return
+	}
 }
 
 // LoginJWT 用户登录 by jwt token
@@ -205,6 +286,11 @@ func (u *UserHandler) ProfileJWT(ctx *gin.Context) {
 // Profile 用户信息
 func (u *UserHandler) Profile(ctx *gin.Context) {
 	ctx.String(http.StatusOK, "这是一条默认的profile")
+}
+
+// setJwtToken 设置Jwt token
+func (u *UserHandler) setJwtToken(ctx *gin.Context) {
+
 }
 
 type UserClaims struct {

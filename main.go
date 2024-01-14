@@ -13,6 +13,7 @@ import (
 	"webookpro/internal/repository/cache"
 	"webookpro/internal/repository/dao"
 	"webookpro/internal/service"
+	"webookpro/internal/service/sms/memory"
 	"webookpro/internal/web"
 	"webookpro/internal/web/middleware"
 	"webookpro/pkg/ginx/middlewares/ratelimit"
@@ -61,6 +62,8 @@ func initWebServer() *gin.Engine {
 	server.Use(middleware.NewLoginJWTMiddlewareBuilder().
 		IgorePath("/users/login").
 		IgorePath("/users/signup").
+		IgorePath("/users/login_sms/code/send").
+		IgorePath("/users/login_sms").
 		Build())
 
 	return server
@@ -93,9 +96,13 @@ func initUser(db *gorm.DB, server *gin.Engine) {
 	userDAO := dao.NewUserDAO(db)
 	rdb := initRDB()
 	userCache := cache.NewRedisUserCache(rdb)
+	codeCache := cache.NewCodeCache(rdb)
 	userRepo := repository.NewUserRepository(userDAO, userCache)
+	codeRepo := repository.NewCodeRepository(codeCache)
 	userService := service.NewUserService(userRepo)
-	userHandler := web.NewUserHandler(userService)
+	smsService := memory.NewService()
+	codeService := service.NewCodeService(codeRepo, smsService)
+	userHandler := web.NewUserHandler(userService, codeService)
 	userHandler.RegisterRoutes(server)
 }
 
