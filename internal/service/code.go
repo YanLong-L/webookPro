@@ -10,20 +10,25 @@ import (
 
 const codeTplId = ""
 
-type CodeService struct {
-	repo *repository.CodeRepository
+type CodeService interface {
+	Send(ctx context.Context, biz string, phone string) error
+	Verify(ctx context.Context, biz string, phone string, inputCode string) (bool, error)
+}
+
+type SMSCodeService struct {
+	repo repository.CodeRepository
 	sms  sms.Service
 }
 
-func NewCodeService(repo *repository.CodeRepository, sms sms.Service) *CodeService {
-	return &CodeService{
+func NewSMSCodeService(repo repository.CodeRepository, sms sms.Service) CodeService {
+	return &SMSCodeService{
 		repo: repo,
 		sms:  sms,
 	}
 }
 
 // Send 发送验证码
-func (svc *CodeService) Send(ctx context.Context, biz string, phone string) error {
+func (svc *SMSCodeService) Send(ctx context.Context, biz string, phone string) error {
 	code := svc.generateCode(ctx)
 	// 1. 将验证码记入缓存
 	err := svc.repo.Store(ctx, biz, phone, code)
@@ -35,12 +40,12 @@ func (svc *CodeService) Send(ctx context.Context, biz string, phone string) erro
 }
 
 // Verify 校验验证码
-func (svc *CodeService) Verify(ctx context.Context, biz string, phone string, inputCode string) (bool, error) {
+func (svc *SMSCodeService) Verify(ctx context.Context, biz string, phone string, inputCode string) (bool, error) {
 	return svc.repo.Verfiy(ctx, biz, phone, inputCode)
 }
 
 // Verify 校验验证码
-func (svc *CodeService) generateCode(ctx context.Context) string {
+func (svc *SMSCodeService) generateCode(ctx context.Context) string {
 	code := rand.Intn(1000000)
 	return fmt.Sprintf("%06d", code)
 }

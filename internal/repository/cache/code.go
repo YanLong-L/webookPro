@@ -14,7 +14,13 @@ var (
 	ErrUnknownForCode         = errors.New("发送验证码未知错误")
 )
 
-type CodeCache struct {
+type CodeCache interface {
+	Set(ctx context.Context, biz, phone, code string) error
+	Verify(ctx context.Context, biz, phone, inputCode string) (bool, error)
+	Key(ctx context.Context, biz string, phone string) string
+}
+
+type RedisCodeCache struct {
 	cmd redis.Cmdable
 }
 
@@ -24,14 +30,14 @@ var setCodeLua string
 //go:embed lua/verify_code.lua
 var verifyCodeLua string
 
-func NewCodeCache(cmd redis.Cmdable) *CodeCache {
-	return &CodeCache{
+func NewRedisCodeCache(cmd redis.Cmdable) CodeCache {
+	return &RedisCodeCache{
 		cmd: cmd,
 	}
 }
 
 // Set 将验证码记入缓存
-func (cache *CodeCache) Set(ctx context.Context, biz, phone, code string) error {
+func (cache *RedisCodeCache) Set(ctx context.Context, biz, phone, code string) error {
 	res, err := cache.cmd.Eval(ctx, setCodeLua, []string{cache.Key(ctx, biz, phone)}, code).Int()
 	if err != nil {
 		return err
@@ -47,7 +53,7 @@ func (cache *CodeCache) Set(ctx context.Context, biz, phone, code string) error 
 }
 
 // Verify 校验验证码
-func (cache *CodeCache) Verify(ctx context.Context, biz, phone, inputCode string) (bool, error) {
+func (cache *RedisCodeCache) Verify(ctx context.Context, biz, phone, inputCode string) (bool, error) {
 	res, err := cache.cmd.Eval(ctx, verifyCodeLua, []string{cache.Key(ctx, biz, phone)}, inputCode).Int()
 	if err != nil {
 		return false, err
@@ -64,6 +70,6 @@ func (cache *CodeCache) Verify(ctx context.Context, biz, phone, inputCode string
 }
 
 // Key 生成验证码的redis key
-func (svc *CodeCache) Key(ctx context.Context, biz string, phone string) string {
+func (svc *RedisCodeCache) Key(ctx context.Context, biz string, phone string) string {
 	return fmt.Sprintf("phone_code%s:%s", biz, phone)
 }

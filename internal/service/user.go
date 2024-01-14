@@ -15,18 +15,25 @@ var (
 	ErrInvalidUserOrPassword error = errors.New("用户名或密码不对")
 )
 
-type UserService struct {
-	repo *repository.UserRepository
+type UserService interface {
+	Login(ctx context.Context, email, password string) (domain.User, error)
+	SignUp(ctx context.Context, user domain.User) error
+	Profile(ctx context.Context, id int64) (domain.User, error)
+	FindOrCreate(ctx *gin.Context, phone string) (domain.User, error)
 }
 
-func NewUserService(repo *repository.UserRepository) *UserService {
-	return &UserService{
+type userService struct {
+	repo repository.UserRepository
+}
+
+func NewUserService(repo repository.UserRepository) UserService {
+	return &userService{
 		repo: repo,
 	}
 }
 
 // Login
-func (u *UserService) Login(ctx context.Context, email, password string) (domain.User, error) {
+func (u *userService) Login(ctx context.Context, email, password string) (domain.User, error) {
 	// 查找用户是否存在
 	user, err := u.repo.FindByEmail(ctx, email)
 	if err == gorm.ErrRecordNotFound {
@@ -44,7 +51,7 @@ func (u *UserService) Login(ctx context.Context, email, password string) (domain
 }
 
 // SignUp
-func (u *UserService) SignUp(ctx context.Context, user domain.User) error {
+func (u *userService) SignUp(ctx context.Context, user domain.User) error {
 	// 密码加密
 	bcryptPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -55,7 +62,7 @@ func (u *UserService) SignUp(ctx context.Context, user domain.User) error {
 }
 
 // Profile
-func (u *UserService) Profile(ctx context.Context, id int64) (domain.User, error) {
+func (u *userService) Profile(ctx context.Context, id int64) (domain.User, error) {
 	user, err := u.repo.FindById(ctx, id)
 	if err != nil {
 		return domain.User{}, err
@@ -65,7 +72,7 @@ func (u *UserService) Profile(ctx context.Context, id int64) (domain.User, error
 }
 
 // FindOrCreate 通过phone查找用户，找不到就新建一个
-func (u *UserService) FindOrCreate(ctx *gin.Context, phone string) (domain.User, error) {
+func (u *userService) FindOrCreate(ctx *gin.Context, phone string) (domain.User, error) {
 	user, err := u.repo.FindByPhone(ctx, phone)
 	if err == nil {
 		// 说明查找到了，直接返回

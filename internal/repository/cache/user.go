@@ -13,12 +13,18 @@ var (
 	ErrKeyNotExist = redis.Nil
 )
 
+type UserCache interface {
+	Set(ctx context.Context, user domain.User) error
+	Get(ctx context.Context, id int64) (domain.User, error)
+	key(ctx context.Context, id int64) string
+}
+
 type RedisUserCache struct {
 	cmd        redis.Cmdable
 	expiration time.Duration
 }
 
-func NewRedisUserCache(cmd redis.Cmdable) *RedisUserCache {
+func NewRedisUserCache(cmd redis.Cmdable) UserCache {
 	return &RedisUserCache{
 		cmd:        cmd,
 		expiration: time.Minute * 15,

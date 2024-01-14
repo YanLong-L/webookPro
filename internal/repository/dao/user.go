@@ -12,17 +12,24 @@ import (
 
 var ErrUserDuplicateEmail error = errors.New("邮箱冲突")
 
-type UserDAO struct {
+type UserDAO interface {
+	Insert(ctx context.Context, u User) error
+	FindByEmail(ctx context.Context, email string) (User, error)
+	FindById(ctx context.Context, id int64) (User, error)
+	FindByPhone(ctx *gin.Context, phone string) (User, error)
+}
+
+type GormUserDAO struct {
 	db *gorm.DB
 }
 
-func NewUserDAO(db *gorm.DB) *UserDAO {
-	return &UserDAO{
+func NewGormUserDAO(db *gorm.DB) UserDAO {
+	return &GormUserDAO{
 		db: db,
 	}
 }
 
-func (ud *UserDAO) Insert(ctx context.Context, u User) error {
+func (ud *GormUserDAO) Insert(ctx context.Context, u User) error {
 	// 获取当前时间，补充 Utime和 Ctime
 	now := time.Now().UnixMilli() // 毫秒数时间戳
 	u.Utime = now
@@ -39,7 +46,7 @@ func (ud *UserDAO) Insert(ctx context.Context, u User) error {
 	return err
 }
 
-func (ud *UserDAO) FindByEmail(ctx context.Context, email string) (User, error) {
+func (ud *GormUserDAO) FindByEmail(ctx context.Context, email string) (User, error) {
 	var u User
 	err := ud.db.WithContext(ctx).Where("email = ?", email).First(&u).Error
 	if err != nil {
@@ -48,7 +55,7 @@ func (ud *UserDAO) FindByEmail(ctx context.Context, email string) (User, error) 
 	return u, err
 }
 
-func (ud *UserDAO) FindById(ctx context.Context, id int64) (User, error) {
+func (ud *GormUserDAO) FindById(ctx context.Context, id int64) (User, error) {
 	var u User
 	err := ud.db.WithContext(ctx).Where("id = ?", id).First(&u).Error
 	if err != nil {
@@ -57,7 +64,7 @@ func (ud *UserDAO) FindById(ctx context.Context, id int64) (User, error) {
 	return u, err
 }
 
-func (ud *UserDAO) FindByPhone(ctx *gin.Context, phone string) (User, error) {
+func (ud *GormUserDAO) FindByPhone(ctx *gin.Context, phone string) (User, error) {
 	var u User
 	err := ud.db.WithContext(ctx).Where("phone = ?", phone).First(&u).Error
 	if err != nil {
