@@ -60,6 +60,7 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 	var req SignUpRequest
 	err := ctx.Bind(&req)
 	if err != nil {
+		ctx.String(http.StatusBadRequest, "参数错误")
 		return
 	}
 	// 参数校验
