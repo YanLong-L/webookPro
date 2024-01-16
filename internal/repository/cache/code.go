@@ -71,5 +71,5 @@ func (cache *RedisCodeCache) Verify(ctx context.Context, biz, phone, inputCode s
 
 // Key 生成验证码的redis Key
 func (svc *RedisCodeCache) Key(ctx context.Context, biz string, phone string) string {
-	return fmt.Sprintf("phone_code%s:%s", biz, phone)
+	return fmt.Sprintf("phone_code:%s:%s", biz, phone)
 }

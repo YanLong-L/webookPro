@@ -118,6 +118,7 @@ func (u *UserHandler) SendLoginSMSCode(ctx *gin.Context) {
 			Code: 4,
 			Msg:  "输入有误",
 		})
+		return
 	}
 	// 校验手机号格式
 	ok, err := u.phoneExp.MatchString(req.Phone)
