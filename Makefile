@@ -13,5 +13,6 @@ mock:
 	@mockgen -source=F:\GeekGoProjects\src\webookpro\internal\repository\cache\user.go -package=cachemocks -destination=F:\GeekGoProjects\src\webookpro\internal\repository\cache\mock\user.mock.go
 	@mockgen -source=F:\GeekGoProjects\src\webookpro\internal\repository\cache\code.go -package=cachemocks -destination=F:\GeekGoProjects\src\webookpro\internal\repository\cache\mock\code.mock.go
 	@mockgen -source=F:\GeekGoProjects\src\webookpro\internal\repository\dao\user.go -package=daomocks -destination=F:\GeekGoProjects\src\webookpro\internal\repository\dao\mock\user.mock.go
+	@mockgen -package=C:\Users\liyl54\GolandProjects\webookPro\internal\repository\cache\redismock\cmd.mock.go  github.com/redis/go-redis/v9 Cmdable
 
 
