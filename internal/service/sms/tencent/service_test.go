@@ -26,7 +26,7 @@ func TestSender(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := NewService(c, "xxx", "xxx") // 这里的appId是SDKAPPID,在短信管理平台的应用管理 --> 应用列表
+	s := NewService(c, "xxx", "xxx", nil) // 这里的appId是SDKAPPID,在短信管理平台的应用管理 --> 应用列表
 
 	testCases := []struct {
 		name    string
