@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
 	"time"
@@ -16,7 +15,8 @@ type UserDAO interface {
 	Insert(ctx context.Context, u User) error
 	FindByEmail(ctx context.Context, email string) (User, error)
 	FindById(ctx context.Context, id int64) (User, error)
-	FindByPhone(ctx *gin.Context, phone string) (User, error)
+	FindByPhone(ctx context.Context, phone string) (User, error)
+	FindByWechat(ctx context.Context, openID string) (User, error)
 }
 
 type GormUserDAO struct {
@@ -64,7 +64,7 @@ func (ud *GormUserDAO) FindById(ctx context.Context, id int64) (User, error) {
 	return u, err
 }
 
-func (ud *GormUserDAO) FindByPhone(ctx *gin.Context, phone string) (User, error) {
+func (ud *GormUserDAO) FindByPhone(ctx context.Context, phone string) (User, error) {
 	var u User
 	err := ud.db.WithContext(ctx).Where("phone = ?", phone).First(&u).Error
 	if err != nil {
@@ -73,11 +73,22 @@ func (ud *GormUserDAO) FindByPhone(ctx *gin.Context, phone string) (User, error)
 	return u, err
 }
 
+func (ud *GormUserDAO) FindByWechat(ctx context.Context, openID string) (User, error) {
+	var u User
+	err := ud.db.WithContext(ctx).Where("wechat_open_id = ?", openID).First(&u).Error
+	if err != nil {
+		return User{}, err
+	}
+	return u, err
+}
+
 type User struct {
-	Id       int64          `gorm:"primaryKey,autoIncrement"`
-	Email    sql.NullString `gorm:"unique"`
-	Password string
-	Ctime    int64
-	Utime    int64
-	Phone    sql.NullString `gorm:"unique"` // 和 email一样是唯一索引，但是null值不冲突
+	Id            int64          `gorm:"primaryKey,autoIncrement"`
+	Email         sql.NullString `gorm:"unique"`
+	Password      string
+	Ctime         int64
+	Utime         int64
+	WechatUnionID sql.NullString // 微信的字段
+	WechatOpenID  sql.NullString `gorm:"unique"` // 微信的字段
+	Phone         sql.NullString `gorm:"unique"` // 和 email一样是唯一索引，但是null值不冲突
 }

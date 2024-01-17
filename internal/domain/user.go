@@ -8,4 +8,5 @@ type User struct {
 	Password string
 	Ctime    time.Time
 	Phone    string
+	Wechat   WeChatInfo
 }

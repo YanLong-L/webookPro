@@ -10,7 +10,6 @@ import (
 	"webookpro/internal/repository/cache"
 	"webookpro/internal/repository/dao"
 	"webookpro/internal/service"
-	"webookpro/internal/service/sms/memory"
 	"webookpro/internal/web"
 )
 
@@ -25,12 +24,14 @@ func InitWebServer() *gin.Engine {
 		// repo层
 		repository.NewCachedUserRepository, repository.NewCachedCodeRepository,
 		// service 层
-		service.NewUserService, service.NewSMSCodeService, memory.NewService,
+		service.NewUserService, service.NewSMSCodeService,
+		ioc.InitSMSService, ioc.InitWechatService,
 		// handlers
-		web.NewUserHandler,
+		web.NewUserHandler, web.NewOAuth2WechatHandler,
 		// middlewares
 		ioc.InitMiddlewares,
 		ioc.InitWebServer,
+		ioc.InitLimiter,
 	)
 	return new(gin.Engine)
 }

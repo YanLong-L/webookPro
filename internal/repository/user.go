@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"github.com/gin-gonic/gin"
 	"time"
 	"webookpro/internal/domain"
 	"webookpro/internal/repository/cache"
@@ -19,7 +18,8 @@ type UserRepository interface {
 	Create(ctx context.Context, user domain.User) error
 	FindByEmail(ctx context.Context, email string) (domain.User, error)
 	FindById(ctx context.Context, id int64) (domain.User, error)
-	FindByPhone(ctx *gin.Context, phone string) (domain.User, error)
+	FindByPhone(ctx context.Context, phone string) (domain.User, error)
+	FindByWechat(ctx context.Context, openID string) (domain.User, error)
 }
 
 type CachedUserRepository struct {
@@ -71,8 +71,16 @@ func (u *CachedUserRepository) FindById(ctx context.Context, id int64) (domain.U
 
 }
 
-func (u *CachedUserRepository) FindByPhone(ctx *gin.Context, phone string) (domain.User, error) {
+func (u *CachedUserRepository) FindByPhone(ctx context.Context, phone string) (domain.User, error) {
 	user, err := u.dao.FindByPhone(ctx, phone)
+	if err != nil {
+		return domain.User{}, err
+	}
+	return u.entityToDomain(user), err
+}
+
+func (u *CachedUserRepository) FindByWechat(ctx context.Context, openID string) (domain.User, error) {
+	user, err := u.dao.FindByWechat(ctx, openID)
 	if err != nil {
 		return domain.User{}, err
 	}
@@ -87,6 +95,10 @@ func (u *CachedUserRepository) entityToDomain(user dao.User) domain.User {
 		Password: user.Password,
 		Ctime:    time.UnixMilli(user.Ctime),
 		Phone:    user.Phone.String,
+		Wechat: domain.WeChatInfo{
+			OpenID:  user.WechatOpenID.String,
+			UnionID: user.WechatUnionID.String,
+		},
 	}
 }
 
@@ -96,8 +108,7 @@ func (u *CachedUserRepository) domainToEntity(user domain.User) dao.User {
 		Id: user.Id,
 		Email: sql.NullString{
 			String: user.Email,
-			// 我确实有手机号
-			Valid: user.Email != "",
+			Valid:  user.Email != "", // 我确实有手机号
 		},
 		Phone: sql.NullString{
 			String: user.Phone,
@@ -105,5 +116,13 @@ func (u *CachedUserRepository) domainToEntity(user domain.User) dao.User {
 		},
 		Password: user.Password,
 		Ctime:    user.Ctime.UnixMilli(),
+		WechatUnionID: sql.NullString{
+			String: user.Wechat.UnionID,
+			Valid:  user.Wechat.UnionID != "",
+		},
+		WechatOpenID: sql.NullString{
+			String: user.Wechat.OpenID,
+			Valid:  user.Wechat.OpenID != "",
+		},
 	}
 }

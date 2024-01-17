@@ -3,14 +3,16 @@ package ioc
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"strings"
 	"time"
 	"webookpro/internal/web"
 	"webookpro/internal/web/middleware"
 	"webookpro/pkg/ginx/middlewares/ratelimit"
+	limit "webookpro/pkg/ratelimit"
 )
 
-func InitWebServer(middlewares []gin.HandlerFunc, userHdl *web.UserHandler) *gin.Engine {
+func InitWebServer(middlewares []gin.HandlerFunc, userHdl *web.UserHandler, wechatHdl *web.OAuth2WechatHandler) *gin.Engine {
 	server := gin.Default()
 
 	// 注册中间件
@@ -18,6 +20,7 @@ func InitWebServer(middlewares []gin.HandlerFunc, userHdl *web.UserHandler) *gin
 
 	// 注册路由
 	userHdl.RegisterRoutes(server)
+	wechatHdl.RegisterRoutes(server)
 
 	// 设置session
 	//store := cookie.NewStore([]byte("secret"))
@@ -33,9 +36,9 @@ func InitWebServer(middlewares []gin.HandlerFunc, userHdl *web.UserHandler) *gin
 	return server
 }
 
-func InitMiddlewares() []gin.HandlerFunc {
+func InitMiddlewares(limiter limit.Limiter) []gin.HandlerFunc {
 	return []gin.HandlerFunc{
-		rateLimitMiddleware(),
+		rateLimitMiddleware(limiter),
 		corsMiddleware(),
 		jwtMiddleware(),
 	}
@@ -69,10 +72,16 @@ func jwtMiddleware() gin.HandlerFunc {
 		IgorePath("/users/signup").
 		IgorePath("/users/login_sms/code/send").
 		IgorePath("/users/login_sms").
+		IgorePath("/oauth2/wechat/authurl").
+		IgorePath("/oauth2/wechat/callback").
 		Build()
 }
 
 // rateLimitMiddleware 限流中间件
-func rateLimitMiddleware() gin.HandlerFunc {
-	return ratelimit.NewBuilder(InitRDB(), time.Second, 100).Build()
+func rateLimitMiddleware(limiter limit.Limiter) gin.HandlerFunc {
+	return ratelimit.NewBuilder(InitRDB(), limiter).Build()
+}
+
+func InitLimiter(cmd redis.Cmdable) limit.Limiter {
+	return limit.NewRedisSlideWindowLimiter(cmd, time.Second, 100)
 }

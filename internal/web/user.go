@@ -5,9 +5,7 @@ import (
 	regexp "github.com/dlclark/regexp2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"net/http"
-	"time"
 	"webookpro/internal/domain"
 	"webookpro/internal/service"
 )
@@ -20,6 +18,7 @@ type UserHandler struct {
 	phoneExp    *regexp.Regexp
 	svc         service.UserService
 	codeSvc     service.CodeService
+	jwtHandler
 }
 
 func NewUserHandler(svc service.UserService, codeSvc service.CodeService) *UserHandler {
@@ -325,24 +324,4 @@ func (u *UserHandler) ProfileJWT(ctx *gin.Context) {
 // Profile 用户信息
 func (u *UserHandler) Profile(ctx *gin.Context) {
 	ctx.String(http.StatusOK, "这是一条默认的profile")
-}
-
-// setJwtToken 设置jwt token
-func (u *UserHandler) setJwtToken(ctx *gin.Context, user domain.User) error {
-	tokenObj := jwt.NewWithClaims(jwt.SigningMethodHS256, UserClaims{
-		Uid:       user.Id,
-		UserAgent: ctx.Request.UserAgent(),
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 30)), // 暂时设置成1分钟过期
-		},
-	})
-	tokenStr, err := tokenObj.SignedString([]byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"))
-	ctx.Header("x-jwt-token", tokenStr)
-	return err
-}
-
-type UserClaims struct {
-	jwt.RegisteredClaims
-	Uid       int64
-	UserAgent string
 }
