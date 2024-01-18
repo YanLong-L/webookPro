@@ -4,17 +4,18 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
-	"strings"
-	"time"
-	"webookpro/internal/web"
+	ijwt "webookpro/internal/web/jwt"
 )
 
 type LoginJWTMiddlewareBuilder struct {
 	paths []string
+	ijwt.JwtHandler
 }
 
-func NewLoginJWTMiddlewareBuilder() *LoginJWTMiddlewareBuilder {
-	return &LoginJWTMiddlewareBuilder{}
+func NewLoginJWTMiddlewareBuilder(jwtHdl ijwt.JwtHandler) *LoginJWTMiddlewareBuilder {
+	return &LoginJWTMiddlewareBuilder{
+		JwtHandler: jwtHdl,
+	}
 }
 
 func (l *LoginJWTMiddlewareBuilder) IgorePath(path string) *LoginJWTMiddlewareBuilder {
@@ -29,22 +30,10 @@ func (l *LoginJWTMiddlewareBuilder) Build() gin.HandlerFunc {
 				return
 			}
 		}
-
-		// 校验jwt token
-		header := ctx.GetHeader("Authorization")
-		if header == "" {
-			ctx.AbortWithStatus(http.StatusUnauthorized)
-			return
-		}
-		headerSplit := strings.Split(header, " ")
-		if len(headerSplit) != 2 {
-			ctx.AbortWithStatus(http.StatusUnauthorized)
-			return
-		}
-		tokenStr := headerSplit[1]
-		var uc web.UserClaims
+		tokenStr := l.JwtHandler.ExtractToken(ctx)
+		var uc ijwt.UserClaims
 		token, err := jwt.ParseWithClaims(tokenStr, &uc, func(token *jwt.Token) (interface{}, error) {
-			return []byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"), nil
+			return ijwt.AtKey, nil
 		})
 		if err != nil {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
@@ -59,14 +48,23 @@ func (l *LoginJWTMiddlewareBuilder) Build() gin.HandlerFunc {
 			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
-		// 此时token校验通过，判断token是否需要刷新，如需刷新则生成一个新的token
-		if uc.ExpiresAt.Sub(time.Now()) < time.Second*50 { // 说明距离上次刷新已经过了10秒钟了，开始刷新
-			// 刷新的token的本质就是生成一个新的token
-			uc.ExpiresAt = jwt.NewNumericDate(uc.ExpiresAt.Add(time.Minute))
-			newTokenObj := jwt.NewWithClaims(jwt.SigningMethodHS256, uc)
-			newTokenStr, _ := newTokenObj.SignedString([]byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"))
-			ctx.Header("x-jwt-token", newTokenStr)
+		// 校验ssid
+		err = l.CheckSession(ctx, uc.Ssid)
+		if err != nil {
+			// 要么 redis 有问题，要么已经退出登录
+			ctx.AbortWithStatus(http.StatusUnauthorized)
+			return
 		}
+
+		// 在长短token的模式下，注释掉了下面的token续约功能
+		//// 此时token校验通过，判断token是否需要刷新，如需刷新则生成一个新的token
+		//if uc.ExpiresAt.Sub(time.Now()) < time.Second*50 { // 说明距离上次刷新已经过了10秒钟了，开始刷新
+		//	// 刷新的token的本质就是生成一个新的token
+		//	uc.ExpiresAt = jwt.NewNumericDate(uc.ExpiresAt.Add(time.Minute))
+		//	newTokenObj := jwt.NewWithClaims(jwt.SigningMethodHS256, uc)
+		//	newTokenStr, _ := newTokenObj.SignedString([]byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf0"))
+		//	ctx.Header("x-jwt-token", newTokenStr)
+		//}
 		ctx.Set("claims", uc)
 	}
 }

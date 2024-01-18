@@ -11,6 +11,7 @@ import (
 	"webookpro/internal/repository/dao"
 	"webookpro/internal/service"
 	"webookpro/internal/web"
+	ijwt "webookpro/internal/web/jwt"
 )
 
 func InitWebServer() *gin.Engine {
@@ -27,7 +28,7 @@ func InitWebServer() *gin.Engine {
 		service.NewUserService, service.NewSMSCodeService,
 		ioc.InitSMSService, ioc.InitWechatService,
 		// handlers
-		web.NewUserHandler, web.NewOAuth2WechatHandler,
+		web.NewUserHandler, web.NewOAuth2WechatHandler, ijwt.NewRedisJWTHandler,
 		// middlewares
 		ioc.InitMiddlewares,
 		ioc.InitWebServer,

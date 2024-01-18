@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 	"webookpro/internal/web"
+	ijwt "webookpro/internal/web/jwt"
 	"webookpro/internal/web/middleware"
 	"webookpro/pkg/ginx/middlewares/ratelimit"
 	limit "webookpro/pkg/ratelimit"
@@ -36,11 +37,11 @@ func InitWebServer(middlewares []gin.HandlerFunc, userHdl *web.UserHandler, wech
 	return server
 }
 
-func InitMiddlewares(limiter limit.Limiter) []gin.HandlerFunc {
+func InitMiddlewares(limiter limit.Limiter, jwtHdl ijwt.JwtHandler) []gin.HandlerFunc {
 	return []gin.HandlerFunc{
 		rateLimitMiddleware(limiter),
 		corsMiddleware(),
-		jwtMiddleware(),
+		jwtMiddleware(jwtHdl),
 	}
 
 }
@@ -51,7 +52,7 @@ func corsMiddleware() gin.HandlerFunc {
 		//AllowOrigins: []string{"*"},
 		//AllowMethods: []string{"POST", "GET"},
 		AllowHeaders:  []string{"Content-Type", "Authorization"},
-		ExposeHeaders: []string{"x-jwt-token"},
+		ExposeHeaders: []string{"x-jwt-token", "x-fresh-token"},
 		// 是否允许你带 cookie 之类的东西
 		AllowCredentials: true,
 		AllowOriginFunc: func(origin string) bool {
@@ -66,12 +67,13 @@ func corsMiddleware() gin.HandlerFunc {
 }
 
 // jwtMiddleware JWT 校验中间件
-func jwtMiddleware() gin.HandlerFunc {
-	return middleware.NewLoginJWTMiddlewareBuilder().
+func jwtMiddleware(jwtHdl ijwt.JwtHandler) gin.HandlerFunc {
+	return middleware.NewLoginJWTMiddlewareBuilder(jwtHdl).
 		IgorePath("/users/login").
 		IgorePath("/users/signup").
 		IgorePath("/users/login_sms/code/send").
 		IgorePath("/users/login_sms").
+		IgorePath("/users/refresh_token").
 		IgorePath("/oauth2/wechat/authurl").
 		IgorePath("/oauth2/wechat/callback").
 		Build()

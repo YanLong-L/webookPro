@@ -6,22 +6,26 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"net/http"
+	"time"
 	"webookpro/internal/service"
 	"webookpro/internal/service/oauth2/wechat"
+	ijwt "webookpro/internal/web/jwt"
 )
 
 type OAuth2WechatHandler struct {
-	svc     wechat.Oauth2Service
-	userSvc service.UserService
-	jwtHandler
+	svc      wechat.Oauth2Service
+	userSvc  service.UserService
 	stateKey []byte
+	ijwt.JwtHandler
 }
 
-func NewOAuth2WechatHandler(svc wechat.Oauth2Service, userSvc service.UserService) *OAuth2WechatHandler {
+func NewOAuth2WechatHandler(svc wechat.Oauth2Service, userSvc service.UserService,
+	jwtHdl ijwt.JwtHandler) *OAuth2WechatHandler {
 	return &OAuth2WechatHandler{
-		svc:      svc,
-		userSvc:  userSvc,
-		stateKey: []byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf1"),
+		svc:        svc,
+		userSvc:    userSvc,
+		stateKey:   []byte("95osj3fUD7fo0mlYdDbncXz4VD2igvf1"),
+		JwtHandler: jwtHdl,
 	}
 }
 
@@ -91,7 +95,8 @@ func (h *OAuth2WechatHandler) CallBack(ctx *gin.Context) {
 		})
 		return
 	}
-	err = h.setJwtToken(ctx, user)
+	// 生成 jwt token access token 和 fresh token
+	err = h.SetLoginToken(ctx, user.Id)
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
@@ -99,6 +104,7 @@ func (h *OAuth2WechatHandler) CallBack(ctx *gin.Context) {
 		})
 		return
 	}
+	// 生成 jwt token (refresh token)
 	ctx.JSON(http.StatusOK, Result{
 		Code: 2,
 		Msg:  "OK",
@@ -109,6 +115,9 @@ func (h *OAuth2WechatHandler) CallBack(ctx *gin.Context) {
 func (h *OAuth2WechatHandler) SetStateCookie(ctx *gin.Context, state string) error {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, StateClaims{
 		State: state,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * 5)), // 我预计用户在5分钟内登录完成
+		},
 	})
 	tokenStr, err := token.SignedString(h.stateKey)
 	if err != nil {
