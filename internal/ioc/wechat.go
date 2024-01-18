@@ -13,6 +13,6 @@ func InitWechatService() wechat.Oauth2Service {
 	//if !ok {
 	//	panic("没有找到环境变量 WECHAT_APP_SECRET")
 	//}
-	appId, appKey := "", ""
+	appId, appKey := "wx7256bc69ab349c72", "71c81e3c0a6"
 	return wechat.NewOauth2WeChatService(appId, appKey)
 }

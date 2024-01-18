@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"net/http"
 	"net/url"
 	"webookpro/internal/domain"
@@ -14,7 +13,7 @@ import (
 var redirectURI = url.PathEscape("https://meoying.com/oauth2/wechat/callback")
 
 type Oauth2Service interface {
-	AuthURL(ctx context.Context) (string, error)
+	AuthURL(ctx context.Context, state string) (string, error)
 	VerifyCode(ctx *gin.Context, code string, state string) (domain.WeChatInfo, error)
 }
 
@@ -33,9 +32,8 @@ func NewOauth2WeChatService(appId string, appSecret string) *Oauth2WeChatService
 }
 
 // AuthURL 构造跳转到微信扫码登录页面的url
-func (s *Oauth2WeChatService) AuthURL(ctx context.Context) (string, error) {
+func (s *Oauth2WeChatService) AuthURL(ctx context.Context, state string) (string, error) {
 	const urlPattern = "https://open.weixin.qq.com/connect/qrconnect?appid=%s&redirect_uri=%s&response_type=code&scope=snsapi_login&state=%s#wechat_redirect"
-	state := uuid.New()
 	return fmt.Sprintf(urlPattern, s.appId, redirectURI, state), nil
 }
 
