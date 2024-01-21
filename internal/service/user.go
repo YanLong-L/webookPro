@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 	"webookpro/internal/domain"
 	"webookpro/internal/repository"
+	"webookpro/pkg/logger"
 )
 
 var (
@@ -25,11 +26,13 @@ type UserService interface {
 
 type userService struct {
 	repo repository.UserRepository
+	l    logger.Logger
 }
 
-func NewUserService(repo repository.UserRepository) UserService {
+func NewUserService(repo repository.UserRepository, l logger.Logger) UserService {
 	return &userService{
 		repo: repo,
+		l:    l,
 	}
 }
 

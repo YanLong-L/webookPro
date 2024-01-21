@@ -1,9 +1,13 @@
 package main
 
-import "github.com/spf13/viper"
+import (
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
+)
 
 func main() {
 	InitViper()
+	InitLogger()
 	server := InitWebServer()
 	err := server.Run(":8080")
 	if err != nil {
@@ -23,4 +27,12 @@ func InitViper() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func InitLogger() {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		panic(err)
+	}
+	zap.ReplaceGlobals(logger)
 }
