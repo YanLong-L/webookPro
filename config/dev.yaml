@@ -1,0 +1,5 @@
+db:
+  dsn: "root:mysql@tcp(localhost:3307)/webookpro"
+
+redis:
+  addr: "localhost:6379"
