@@ -1,6 +1,7 @@
 package ioc
 
 import (
+	"context"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -9,7 +10,9 @@ import (
 	"webookpro/internal/web"
 	ijwt "webookpro/internal/web/jwt"
 	"webookpro/internal/web/middleware"
+	glogger "webookpro/pkg/ginx/middlewares/logger"
 	"webookpro/pkg/ginx/middlewares/ratelimit"
+	"webookpro/pkg/logger"
 	limit "webookpro/pkg/ratelimit"
 )
 
@@ -37,9 +40,10 @@ func InitWebServer(middlewares []gin.HandlerFunc, userHdl *web.UserHandler, wech
 	return server
 }
 
-func InitMiddlewares(limiter limit.Limiter, jwtHdl ijwt.JwtHandler) []gin.HandlerFunc {
+func InitMiddlewares(limiter limit.Limiter, jwtHdl ijwt.JwtHandler, l logger.Logger) []gin.HandlerFunc {
 	return []gin.HandlerFunc{
 		rateLimitMiddleware(limiter),
+		//logMiddleware(l),
 		corsMiddleware(),
 		jwtMiddleware(jwtHdl),
 	}
@@ -82,6 +86,12 @@ func jwtMiddleware(jwtHdl ijwt.JwtHandler) gin.HandlerFunc {
 // rateLimitMiddleware 限流中间件
 func rateLimitMiddleware(limiter limit.Limiter) gin.HandlerFunc {
 	return ratelimit.NewBuilder(InitRDB(), limiter).Build()
+}
+
+func logMiddleware(l logger.Logger) gin.HandlerFunc {
+	return glogger.NewBuilder(func(ctx context.Context, al *glogger.AccessLog) {
+		l.Debug("Gin Http", logger.Field{Key: "AccessLog", Value: al})
+	}).AllowReqBody(true).AllowRespBody().Build()
 }
 
 func InitLimiter(cmd redis.Cmdable) limit.Limiter {

@@ -10,7 +10,7 @@ import (
 func InitDB() *gorm.DB {
 	// 初始化db
 	//db, err := gorm.Open(mysql.Open(config.Config.DB.DSN), &gorm.Config{})
-	db, err := gorm.Open(mysql.Open(viper.GetString("db.dsn")), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(viper.GetString("db.dsn")))
 	if err != nil {
 		panic(err)
 	}

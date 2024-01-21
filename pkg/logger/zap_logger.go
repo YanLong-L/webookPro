@@ -2,14 +2,13 @@ package logger
 
 import (
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 type ZapLogger struct {
 	l *zap.Logger
 }
 
-func NewZapLogger(l *zap.Logger) Logger {
+func NewZapLogger(l *zap.Logger) *ZapLogger {
 	return &ZapLogger{
 		l: l,
 	}
@@ -32,7 +31,7 @@ func (z *ZapLogger) Error(msg string, args ...Field) {
 }
 
 func (z *ZapLogger) toZapFields(args []Field) []zap.Field {
-	var res = make([]zapcore.Field, len(args))
+	var res = make([]zap.Field, len(args))
 	for _, arg := range args {
 		res = append(res, zap.Any(arg.Key, arg.Value))
 	}

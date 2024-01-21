@@ -5,7 +5,7 @@ import (
 	"webookpro/pkg/logger"
 )
 
-func InitLogger(l *zap.Logger) logger.Logger {
+func InitLogger() logger.Logger {
 	l, err := zap.NewDevelopment()
 	if err != nil {
 		panic(err)
