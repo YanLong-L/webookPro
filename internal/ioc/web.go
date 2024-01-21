@@ -80,6 +80,7 @@ func jwtMiddleware(jwtHdl ijwt.JwtHandler) gin.HandlerFunc {
 		IgorePath("/users/refresh_token").
 		IgorePath("/oauth2/wechat/authurl").
 		IgorePath("/oauth2/wechat/callback").
+		IgorePath("/articles/edit").
 		Build()
 }
 

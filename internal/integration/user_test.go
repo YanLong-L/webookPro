@@ -10,13 +10,14 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+	"webookpro/internal/integration/startup"
 	"webookpro/internal/ioc"
 	"webookpro/internal/web"
 )
 
 func TestUserHandler_e2e_SendLoginSMSCode(t *testing.T) {
 	// 既然是集成测试，那我需要一整个包含注册路由的 webserver，所以我可以直接从wire中拿
-	server := InitWebServer()
+	server := startup.InitWebServer()
 	rdb := ioc.InitRDB()
 	testcases := []struct {
 		name     string

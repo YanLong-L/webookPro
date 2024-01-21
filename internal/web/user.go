@@ -14,6 +14,8 @@ import (
 
 const biz = "login"
 
+var _ handler = (*UserHandler)(nil)
+
 type UserHandler struct {
 	emailExp    *regexp.Regexp
 	passwordExp *regexp.Regexp

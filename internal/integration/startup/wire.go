@@ -1,6 +1,6 @@
 //go:build wireinject
 
-package integration
+package startup
 
 import (
 	"github.com/gin-gonic/gin"
@@ -10,14 +10,16 @@ import (
 	"webookpro/internal/repository/cache"
 	"webookpro/internal/repository/dao"
 	"webookpro/internal/service"
-	"webookpro/internal/service/sms/memory"
 	"webookpro/internal/web"
+	ijwt "webookpro/internal/web/jwt"
 )
+
+var thirdProvider = wire.NewSet(InitDB, InitRDB, ioc.InitLogger)
 
 func InitWebServer() *gin.Engine {
 	wire.Build(
 		// 第三方依赖
-		ioc.InitDB, ioc.InitRDB,
+		InitDB, InitRDB, ioc.InitLogger,
 		// dao 层
 		dao.NewGormUserDAO,
 		// cache 层
@@ -25,12 +27,24 @@ func InitWebServer() *gin.Engine {
 		// repo层
 		repository.NewCachedUserRepository, repository.NewCachedCodeRepository,
 		// service 层
-		service.NewUserService, service.NewSMSCodeService, memory.NewService,
+		service.NewUserService, service.NewSMSCodeService,
+		ioc.InitSMSService, ioc.InitWechatService,
 		// handlers
-		web.NewUserHandler,
+		web.NewUserHandler, web.NewOAuth2WechatHandler, ijwt.NewRedisJWTHandler,
 		// middlewares
 		ioc.InitMiddlewares,
 		ioc.InitWebServer,
+		ioc.InitLimiter,
 	)
 	return new(gin.Engine)
+}
+
+func InitArticleHandler() *web.ArticleHandler {
+	wire.Build(thirdProvider,
+		dao.NewGORMArticleDAO,
+		service.NewArticleService,
+		web.NewArticleHandler,
+		repository.NewCachedArticleRepository,
+	)
+	return &web.ArticleHandler{}
 }
