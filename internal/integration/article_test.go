@@ -37,6 +37,12 @@ func (s *ArticleTestSuite) SetupSuite() {
 	artHdl.RegisterRoutes(s.server)
 }
 
+// TearDownTest 每一个都会执行
+func (s *ArticleTestSuite) TearDownTest() {
+	// 清空所有数据，并且自增主键恢复到 1
+	s.db.Exec("TRUNCATE TABLE articles")
+}
+
 func (s *ArticleTestSuite) TestEdit() {
 	t := s.T()
 	testcase := []struct {
@@ -79,6 +85,80 @@ func (s *ArticleTestSuite) TestEdit() {
 					Content:  "测试内容",
 					AuthorId: 123,
 				}, art)
+				s.db.Exec("TRUNCATE TABLE articles")
+			},
+		},
+		{
+			name: "修改帖子--保存成功",
+			req: Article{
+				Id:      1,
+				Title:   "测试标题",
+				Content: "测试内容",
+			},
+			wantCode: 200,
+			wantRes: Result[int64]{
+				Code: 2,
+				Msg:  "OK",
+				Data: 1,
+			},
+			before: func(t *testing.T) {
+				//s.db.Exec("TRUNCATE TABLE articles")
+				// 我要先准备一条数据
+				s.db.Create(&dao.Article{
+					Id:       1,
+					Title:    "原标题",
+					Content:  "原测试内容",
+					AuthorId: 123,
+					Ctime:    123,
+					Utime:    123,
+				})
+			},
+			after: func(t *testing.T) {
+				// 验证数据库
+				var art dao.Article
+				err := s.db.Where("id=?", 1).First(&art).Error
+				assert.NoError(t, err)
+				assert.Equal(t, art.Ctime, int64(123))
+				// utime 要变但是 ctime不变
+				assert.True(t, art.Utime > 123)
+				art.Ctime = 0
+				art.Utime = 0
+				assert.Equal(t, dao.Article{
+					Id:       1,
+					Title:    "测试标题",
+					Content:  "测试内容",
+					AuthorId: 123,
+				}, art)
+				s.db.Exec("TRUNCATE TABLE articles")
+			},
+		},
+		{
+			name: "试图修改别人的帖子",
+			req: Article{
+				Id:      1,
+				Title:   "测试标题",
+				Content: "测试内容",
+			},
+			wantCode: 200,
+			wantRes: Result[int64]{
+				Code: 5,
+				Msg:  "OK",
+				Data: 1,
+			},
+			before: func(t *testing.T) {
+				//s.db.Exec("TRUNCATE TABLE articles")
+				// 我要先准备一条数据
+				s.db.Create(&dao.Article{
+					Id:       1,
+					Title:    "原标题",
+					Content:  "原测试内容",
+					AuthorId: 456,
+					Ctime:    123,
+					Utime:    123,
+				})
+			},
+			after: func(t *testing.T) {
+				s.db.Exec("TRUNCATE TABLE articles")
 			},
 		},
 	}
@@ -111,6 +191,7 @@ func TestArticle(t *testing.T) {
 }
 
 type Article struct {
+	Id      int64  `json:"id"`
 	Title   string `json:"title"`
 	Content string `json:"content"`
 }

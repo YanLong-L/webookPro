@@ -149,7 +149,7 @@ func TestUserHandler_SignUp(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			userSvc := tc.mock(ctrl)
-			userHdl := NewUserHandler(userSvc, nil)
+			userHdl := NewUserHandler(userSvc, nil, nil)
 			userHdl.RegisterRoutes(server)
 
 			recorder := httptest.NewRecorder()

@@ -9,7 +9,6 @@ import (
 	reflect "reflect"
 	domain "webookpro/internal/domain"
 
-	gin "github.com/gin-gonic/gin"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -81,7 +80,7 @@ func (mr *MockUserRepositoryMockRecorder) FindById(ctx, id interface{}) *gomock.
 }
 
 // FindByPhone mocks base method.
-func (m *MockUserRepository) FindByPhone(ctx *gin.Context, phone string) (domain.User, error) {
+func (m *MockUserRepository) FindByPhone(ctx context.Context, phone string) (domain.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindByPhone", ctx, phone)
 	ret0, _ := ret[0].(domain.User)
@@ -93,4 +92,19 @@ func (m *MockUserRepository) FindByPhone(ctx *gin.Context, phone string) (domain
 func (mr *MockUserRepositoryMockRecorder) FindByPhone(ctx, phone interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByPhone", reflect.TypeOf((*MockUserRepository)(nil).FindByPhone), ctx, phone)
+}
+
+// FindByWechat mocks base method.
+func (m *MockUserRepository) FindByWechat(ctx context.Context, openID string) (domain.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindByWechat", ctx, openID)
+	ret0, _ := ret[0].(domain.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindByWechat indicates an expected call of FindByWechat.
+func (mr *MockUserRepositoryMockRecorder) FindByWechat(ctx, openID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByWechat", reflect.TypeOf((*MockUserRepository)(nil).FindByWechat), ctx, openID)
 }

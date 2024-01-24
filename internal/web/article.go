@@ -30,12 +30,14 @@ func NewArticleHandler(svc service.ArticleServcie, l logger.Logger) *ArticleHand
 func (u *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	ug := server.Group("/articles")
 	ug.POST("/edit", u.Edit)
+	ug.POST("/publish", u.Edit)
 }
 
 // Edit 创作者编辑一篇文章并保存
 func (u *ArticleHandler) Edit(ctx *gin.Context) {
 	// 参数接收 & 校验
 	type Req struct {
+		Id      int64  `json:"id"`
 		Title   string `json:"title" binding:"required"`
 		Content string `json:"content" binding:"required"`
 	}
@@ -55,6 +57,7 @@ func (u *ArticleHandler) Edit(ctx *gin.Context) {
 	}
 	// 业务处理
 	id, err := u.svc.Store(ctx, domain.Article{
+		Id:      req.Id,
 		Title:   req.Title,
 		Content: req.Content,
 		Author: domain.Author{
@@ -74,4 +77,9 @@ func (u *ArticleHandler) Edit(ctx *gin.Context) {
 		Msg:  "OK",
 		Data: id,
 	})
+}
+
+// Publish 发表文章
+func (u *ArticleHandler) Publish(ctx *gin.Context) {
+
 }
