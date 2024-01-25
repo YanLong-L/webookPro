@@ -7,6 +7,7 @@ import (
 	"github.com/google/wire"
 	"webookpro/internal/ioc"
 	"webookpro/internal/repository"
+	"webookpro/internal/repository/article"
 	"webookpro/internal/repository/cache"
 	"webookpro/internal/repository/dao"
 	"webookpro/internal/service"
@@ -44,7 +45,7 @@ func InitArticleHandler() *web.ArticleHandler {
 		dao.NewGORMArticleDAO,
 		service.NewArticleService,
 		web.NewArticleHandler,
-		repository.NewCachedArticleRepository,
+		article.NewCachedArticleRepository,
 	)
 	return &web.ArticleHandler{}
 }

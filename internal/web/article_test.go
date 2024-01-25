@@ -10,7 +10,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"webookpro/internal/domain"
 	"webookpro/internal/service"
+	svcmocks "webookpro/internal/service/mock"
+	"webookpro/internal/web/jwt"
 	"webookpro/pkg/logger"
 )
 
@@ -23,9 +26,26 @@ func TestArticleHandler_Publish(t *testing.T) {
 		wantRes  Result
 	}{
 		{
-			name: "发表成功",
+			name: "新建帖子，并发表成功",
+			reqBody: `
+				{"title":"我的标题","content":"我的内容"}
+				`,
 			mock: func(ctrl *gomock.Controller) service.ArticleServcie {
-
+				artSvc := svcmocks.NewMockArticleServcie(ctrl)
+				artSvc.EXPECT().Publish(gomock.Any(), domain.Article{
+					Title:   "我的标题",
+					Content: "我的内容",
+					Author: domain.Author{
+						Id: 123,
+					},
+				}).Return(int64(1), nil)
+				return artSvc
+			},
+			wantCode: 200,
+			wantRes: Result{
+				Code: 2,
+				Msg:  "OK",
+				Data: float64(1),
 			},
 		},
 	}
@@ -33,6 +53,11 @@ func TestArticleHandler_Publish(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			server := gin.Default()
+			server.Use(func(context *gin.Context) {
+				context.Set("claims", &jwt.UserClaims{
+					Uid: 123,
+				})
+			})
 
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
@@ -47,7 +72,7 @@ func TestArticleHandler_Publish(t *testing.T) {
 			server.ServeHTTP(recorder, req)
 
 			var res Result
-			err = json.Unmarshal(recorder.Body.Bytes(), &res)
+			err = json.NewDecoder(recorder.Body).Decode(&res)
 			require.NoError(t, err)
 			assert.Equal(t, tc.wantCode, recorder.Code)
 			assert.Equal(t, tc.wantRes, res)

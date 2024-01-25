@@ -14,5 +14,9 @@ mock:
 	@mockgen -source=F:\GeekGoProjects\src\webookpro\internal\repository\cache\code.go -package=cachemocks -destination=F:\GeekGoProjects\src\webookpro\internal\repository\cache\mock\code.mock.go
 	@mockgen -source=F:\GeekGoProjects\src\webookpro\internal\repository\dao\user.go -package=daomocks -destination=F:\GeekGoProjects\src\webookpro\internal\repository\dao\mock\user.mock.go
 	@mockgen -package=F:\GeekGoProjects\src\webookPro\internal\repository\cache\redismock\cmd.mock.go  github.com/redis/go-redis/v9 Cmdable
+	@mockgen -source=C:\Users\liyl54\GolandProjects\webookPro\internal\service\article.go -package=svcmocks -destination=C:\Users\liyl54\GolandProjects\webookPro\internal\service\mock\article.mock.go
+	@mockgen -source=C:\Users\liyl54\GolandProjects\webookPro\internal\repository\article\article.go -package=artrepomocks -destination=C:\Users\liyl54\GolandProjects\webookPro\internal\repository\article\mocks\article.mock.go
+	@mockgen -source=C:\Users\liyl54\GolandProjects\webookPro\internal\repository\article\article_author.go -package=artrepomocks -destination=C:\Users\liyl54\GolandProjects\webookPro\internal\repository\article\mocks\article_author.mock.go
+	@mockgen -source=C:\Users\liyl54\GolandProjects\webookPro\internal\repository\article\article_reader.go -package=artrepomocks -destination=C:\Users\liyl54\GolandProjects\webookPro\internal\repository\article\mocks\article_reader.mock.go
 
 
