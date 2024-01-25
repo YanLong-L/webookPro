@@ -12,7 +12,7 @@ import (
 	"net/http/httptest"
 	"testing"
 	"webookpro/internal/integration/startup"
-	"webookpro/internal/repository/dao"
+	"webookpro/internal/repository/dao/article"
 	ijwt "webookpro/internal/web/jwt"
 )
 
@@ -72,14 +72,14 @@ func (s *ArticleTestSuite) TestEdit() {
 			},
 			after: func(t *testing.T) {
 				// 验证数据库
-				var art dao.Article
+				var art article.Article
 				err := s.db.Where("id=?", 1).First(&art).Error
 				assert.NoError(t, err)
 				assert.True(t, art.Ctime > 0)
 				assert.True(t, art.Utime > 0)
 				art.Ctime = 0
 				art.Utime = 0
-				assert.Equal(t, dao.Article{
+				assert.Equal(t, article.Article{
 					Id:       1,
 					Title:    "测试标题",
 					Content:  "测试内容",
@@ -104,7 +104,7 @@ func (s *ArticleTestSuite) TestEdit() {
 			before: func(t *testing.T) {
 				//s.db.Exec("TRUNCATE TABLE articles")
 				// 我要先准备一条数据
-				s.db.Create(&dao.Article{
+				s.db.Create(&article.Article{
 					Id:       1,
 					Title:    "原标题",
 					Content:  "原测试内容",
@@ -115,7 +115,7 @@ func (s *ArticleTestSuite) TestEdit() {
 			},
 			after: func(t *testing.T) {
 				// 验证数据库
-				var art dao.Article
+				var art article.Article
 				err := s.db.Where("id=?", 1).First(&art).Error
 				assert.NoError(t, err)
 				assert.Equal(t, art.Ctime, int64(123))
@@ -123,7 +123,7 @@ func (s *ArticleTestSuite) TestEdit() {
 				assert.True(t, art.Utime > 123)
 				art.Ctime = 0
 				art.Utime = 0
-				assert.Equal(t, dao.Article{
+				assert.Equal(t, article.Article{
 					Id:       1,
 					Title:    "测试标题",
 					Content:  "测试内容",
@@ -148,7 +148,7 @@ func (s *ArticleTestSuite) TestEdit() {
 			before: func(t *testing.T) {
 				//s.db.Exec("TRUNCATE TABLE articles")
 				// 我要先准备一条数据
-				s.db.Create(&dao.Article{
+				s.db.Create(&article.Article{
 					Id:       1,
 					Title:    "原标题",
 					Content:  "原测试内容",

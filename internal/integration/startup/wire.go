@@ -10,6 +10,7 @@ import (
 	"webookpro/internal/repository/article"
 	"webookpro/internal/repository/cache"
 	"webookpro/internal/repository/dao"
+	article2 "webookpro/internal/repository/dao/article"
 	"webookpro/internal/service"
 	"webookpro/internal/web"
 	ijwt "webookpro/internal/web/jwt"
@@ -42,7 +43,7 @@ func InitWebServer() *gin.Engine {
 
 func InitArticleHandler() *web.ArticleHandler {
 	wire.Build(thirdProvider,
-		dao.NewGORMArticleDAO,
+		article2.NewGORMArticleDAO,
 		service.NewArticleService,
 		web.NewArticleHandler,
 		article.NewCachedArticleRepository,

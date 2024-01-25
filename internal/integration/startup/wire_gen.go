@@ -14,6 +14,7 @@ import (
 	"webookpro/internal/repository/article"
 	"webookpro/internal/repository/cache"
 	"webookpro/internal/repository/dao"
+	article2 "webookpro/internal/repository/dao/article"
 	"webookpro/internal/service"
 	"webookpro/internal/web"
 	"webookpro/internal/web/jwt"
@@ -45,7 +46,7 @@ func InitWebServer() *gin.Engine {
 
 func InitArticleHandler() *web.ArticleHandler {
 	db := InitDB()
-	articleDAO := dao.NewGORMArticleDAO(db)
+	articleDAO := article2.NewGORMArticleDAO(db)
 	articleRepository := article.NewCachedArticleRepository(articleDAO)
 	articleServcie := service.NewArticleService(articleRepository)
 	logger := ioc.InitLogger()

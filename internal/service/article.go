@@ -55,7 +55,8 @@ func (s *articleService) Store(ctx context.Context, article domain.Article) (int
 
 // Publish 发表帖子
 func (s *articleService) Publish(ctx context.Context, article domain.Article) (int64, error) {
-	return 1, nil
+	artId, err := s.repo.Sync(ctx, article)
+	return artId, err
 }
 
 // PublishV1 V1: publish层操作两个repo
