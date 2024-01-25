@@ -13,6 +13,7 @@ type ArticleServcie interface {
 	Store(ctx context.Context, article domain.Article) (int64, error)
 	Publish(ctx context.Context, article domain.Article) (int64, error)
 	PublishV1(ctx context.Context, article domain.Article) (int64, error)
+	Withdraw(ctx context.Context, art domain.Article) error
 }
 
 type articleService struct {
@@ -32,6 +33,11 @@ func NewArticleService(repo article.ArticleRepository) ArticleServcie {
 	}
 }
 
+// Withdraw 撤回帖子发表
+func (s *articleService) Withdraw(ctx context.Context, art domain.Article) error {
+	return s.repo.SyncStatus(ctx, art, domain.ArticleStatusUnpublished)
+}
+
 // v1: NewArticleServiceV1 在serice层操作 author和 reader 两个repo
 func NewArticleServiceV1(repo article.ArticleRepository, author article.ArticleAuthorRepository,
 	reader article.ArticleReaderRepository, l logger.Logger) ArticleServcie {
@@ -45,6 +51,7 @@ func NewArticleServiceV1(repo article.ArticleRepository, author article.ArticleA
 
 // Store 制作库编辑一篇文章并保存
 func (s *articleService) Store(ctx context.Context, article domain.Article) (int64, error) {
+	article.Status = domain.ArticleStatusUnpublished
 	if article.Id > 0 {
 		err := s.repo.Update(ctx, article)
 		return article.Id, err
@@ -55,6 +62,7 @@ func (s *articleService) Store(ctx context.Context, article domain.Article) (int
 
 // Publish 发表帖子
 func (s *articleService) Publish(ctx context.Context, article domain.Article) (int64, error) {
+	article.Status = domain.ArticleStatusPublished
 	artId, err := s.repo.Sync(ctx, article)
 	return artId, err
 }

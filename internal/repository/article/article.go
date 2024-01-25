@@ -12,6 +12,7 @@ type ArticleRepository interface {
 	Update(ctx context.Context, article domain.Article) error
 	Sync(ctx context.Context, article domain.Article) (int64, error)
 	SyncV1(ctx context.Context, article domain.Article) (int64, error)
+	SyncStatus(ctx context.Context, art domain.Article, status domain.ArticleStatus) error
 }
 
 type CachedArticleRepository struct {
@@ -27,6 +28,11 @@ func NewCachedArticleRepository(dao article.ArticleDAO) ArticleRepository {
 	return &CachedArticleRepository{
 		dao: dao,
 	}
+}
+
+// SyncStatus 同步帖子状态
+func (r *CachedArticleRepository) SyncStatus(ctx context.Context, art domain.Article, status domain.ArticleStatus) error {
+	return r.dao.SyncStatus(ctx, r.domainToEntity(art), status)
 }
 
 // Sync 帖子发表接口同步数据
@@ -84,5 +90,6 @@ func (r *CachedArticleRepository) domainToEntity(art domain.Article) article.Art
 		Title:    art.Title,
 		Content:  art.Content,
 		AuthorId: art.Author.Id,
+		Status:   art.Status.ToUint8(),
 	}
 }

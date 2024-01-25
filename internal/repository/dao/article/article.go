@@ -6,6 +6,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"time"
+	"webookpro/internal/domain"
 )
 
 type ArticleDAO interface {
@@ -13,6 +14,7 @@ type ArticleDAO interface {
 	UpdateById(ctx context.Context, article Article) error
 	Sync(ctx context.Context, article Article) (int64, error)
 	Upsert(ctx context.Context, article PublishedArticle) error
+	SyncStatus(ctx context.Context, article Article, status domain.ArticleStatus) error
 }
 
 type GORMArticleDAO struct {
@@ -23,6 +25,12 @@ func NewGORMArticleDAO(db *gorm.DB) ArticleDAO {
 	return &GORMArticleDAO{
 		db: db,
 	}
+}
+
+// SyncStatus 同步线上库制作库帖子状态
+func (d *GORMArticleDAO) SyncStatus(ctx context.Context, article Article, status domain.ArticleStatus) error {
+	//TODO implement me
+	panic("implement me")
 }
 
 // Upsert 线上库upsert
@@ -48,6 +56,7 @@ func (d *GORMArticleDAO) Upsert(ctx context.Context, art PublishedArticle) error
 			"title":   art.Title,
 			"content": art.Content,
 			"utime":   now,
+			"status":  art.Status,
 		}),
 	}).Create(&art).Error
 	// MySQL 最终的语句 INSERT xxx ON DUPLICATE KEY UPDATE xxx
@@ -97,6 +106,7 @@ func (d *GORMArticleDAO) UpdateById(ctx context.Context, article Article) error 
 			"title":   article.Title,
 			"content": article.Content,
 			"utime":   article.Utime,
+			"status":  article.Status,
 		})
 
 	if res.Error != nil {
@@ -131,8 +141,9 @@ type Article struct {
 	AuthorId int64 `gorm:"index"`
 	//AuthorId int64 `gorm:"index=aid_ctime"`
 	//Ctime    int64 `gorm:"index=aid_ctime"`
-	Ctime int64
-	Utime int64
+	Status uint8
+	Ctime  int64
+	Utime  int64
 }
 
 type PublishedArticle struct {
