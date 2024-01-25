@@ -29,8 +29,27 @@ func NewGORMArticleDAO(db *gorm.DB) ArticleDAO {
 
 // SyncStatus 同步线上库制作库帖子状态
 func (d *GORMArticleDAO) SyncStatus(ctx context.Context, article Article, status domain.ArticleStatus) error {
-	//TODO implement me
-	panic("implement me")
+	now := time.Now().UnixMilli()
+	err := d.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		res := d.db.Model(&Article{}).Where("id = ? AND author_id = ?", article.Id, article.AuthorId).
+			Updates(map[string]any{
+				"status": domain.ArticleStatusUnpublished,
+				"utime":  now,
+			})
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected != 1 {
+			// 要么 用户不对 ，要么文章 id不对
+			return fmt.Errorf("非法操作 Uid:%s, artId:%s", article.Id, article.AuthorId)
+		}
+		return d.db.Model(&PublishedArticle{}).Where("id = ? AND author_id = ?", article.Id, article.AuthorId).
+			Updates(map[string]any{
+				"status": domain.ArticleStatusUnpublished,
+				"utime":  now,
+			}).Error
+	})
+	return err
 }
 
 // Upsert 线上库upsert
