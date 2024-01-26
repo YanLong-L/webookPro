@@ -9,14 +9,6 @@ import (
 	"webookpro/internal/domain"
 )
 
-type ArticleDAO interface {
-	Insert(ctx context.Context, article Article) (int64, error)
-	UpdateById(ctx context.Context, article Article) error
-	Sync(ctx context.Context, article Article) (int64, error)
-	Upsert(ctx context.Context, article PublishedArticle) error
-	SyncStatus(ctx context.Context, article Article, status domain.ArticleStatus) error
-}
-
 type GORMArticleDAO struct {
 	db *gorm.DB
 }
@@ -88,24 +80,42 @@ func (d *GORMArticleDAO) Upsert(ctx context.Context, art PublishedArticle) error
 
 // Sync 帖子发表接口同步线上库和制作库数据
 func (d *GORMArticleDAO) Sync(ctx context.Context, art Article) (int64, error) {
+	now := time.Now().UnixMilli()
 	var (
 		artId = art.Id
 		err   error
 	)
-	err = d.db.Transaction(func(tx *gorm.DB) error {
-		txDAO := NewGORMArticleDAO(tx)
-		if art.Id > 0 {
-			// 更新制作库
-			err = txDAO.UpdateById(ctx, art)
-		} else {
-			// 新增制作库
-			artId, err = txDAO.Insert(ctx, art)
-		}
-		// upsert 线上库
-		return txDAO.Upsert(ctx, PublishedArticle{
-			Article: art,
-		})
-	})
+	tx := d.db.WithContext(ctx).Begin()
+	defer tx.Rollback()
+	txDAO := NewGORMArticleDAO(tx)
+	if art.Id > 0 {
+		// 更新制作库
+		err = txDAO.UpdateById(ctx, art)
+	} else {
+		// 新增制作库
+		artId, err = txDAO.Insert(ctx, art)
+	}
+	if err != nil {
+		return 0, err
+	}
+	// upsert 线上库
+	publishArt := PublishedArticle{Article: art}
+	publishArt.Utime = now
+	publishArt.Ctime = now
+	err = tx.Clauses(clause.OnConflict{
+		// ID 冲突的时候。实际上，在 MYSQL 里面你写不写都可以
+		Columns: []clause.Column{{Name: "id"}},
+		DoUpdates: clause.Assignments(map[string]interface{}{
+			"title":   art.Title,
+			"content": art.Content,
+			"status":  art.Status,
+			"utime":   now,
+		}),
+	}).Create(&publishArt).Error
+	if err != nil {
+		return 0, err
+	}
+	tx.Commit()
 	return artId, err
 }
 
@@ -124,7 +134,7 @@ func (d *GORMArticleDAO) UpdateById(ctx context.Context, article Article) error 
 		Updates(map[string]any{
 			"title":   article.Title,
 			"content": article.Content,
-			"utime":   article.Utime,
+			"utime":   now,
 			"status":  article.Status,
 		})
 
@@ -137,34 +147,4 @@ func (d *GORMArticleDAO) UpdateById(ctx context.Context, article Article) error 
 			article.Id, article.AuthorId)
 	}
 	return nil
-}
-
-type Article struct {
-	Id int64 `gorm:"primaryKey,autoIncrement"`
-	// 长度 1024
-	Title   string `gorm:"type=varchar(1024)"`
-	Content string `gorm:"type=BLOB"`
-	// 如何设计索引
-	// 在帖子这里，什么样查询场景？
-	// 对于创作者来说，是不是看草稿箱，看到所有自己的文章？
-	// SELECT * FROM articles WHERE author_id = 123 ORDER BY `ctime` DESC;
-	// 产品经理告诉你，要按照创建时间的倒序排序
-	// 单独查询某一篇 SELECT * FROM articles WHERE id = 1
-	// 在查询接口，我们深入讨论这个问题
-	// - 在 author_id 和 ctime 上创建联合索引
-	// - 在 author_id 上创建索引
-
-	// 学学 Explain 命令
-
-	// 在 author_id 上创建索引
-	AuthorId int64 `gorm:"index"`
-	//AuthorId int64 `gorm:"index=aid_ctime"`
-	//Ctime    int64 `gorm:"index=aid_ctime"`
-	Status uint8
-	Ctime  int64
-	Utime  int64
-}
-
-type PublishedArticle struct {
-	Article
 }

@@ -11,10 +11,10 @@ import (
 	"github.com/google/wire"
 	"webookpro/internal/ioc"
 	"webookpro/internal/repository"
-	"webookpro/internal/repository/article"
+	article2 "webookpro/internal/repository/article"
 	"webookpro/internal/repository/cache"
 	"webookpro/internal/repository/dao"
-	article2 "webookpro/internal/repository/dao/article"
+	"webookpro/internal/repository/dao/article"
 	"webookpro/internal/service"
 	"webookpro/internal/web"
 	"webookpro/internal/web/jwt"
@@ -44,10 +44,8 @@ func InitWebServer() *gin.Engine {
 	return engine
 }
 
-func InitArticleHandler() *web.ArticleHandler {
-	db := InitDB()
-	articleDAO := article2.NewGORMArticleDAO(db)
-	articleRepository := article.NewCachedArticleRepository(articleDAO)
+func InitArticleHandler(dao2 article.ArticleDAO) *web.ArticleHandler {
+	articleRepository := article2.NewCachedArticleRepository(dao2)
 	articleServcie := service.NewArticleService(articleRepository)
 	logger := ioc.InitLogger()
 	articleHandler := web.NewArticleHandler(articleServcie, logger)
