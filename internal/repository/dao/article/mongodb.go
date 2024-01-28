@@ -60,6 +60,11 @@ func NewMongoDBArticleDAO(client *mongo.Client, db *mongo.Database, node *snowfl
 	}
 }
 
+func (m MongoDBArticleDAO) GetByAuthor(ctx context.Context, authorId int64, offset int, limit int) ([]Article, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (m MongoDBArticleDAO) Insert(ctx context.Context, art Article) (int64, error) {
 	now := time.Now().UnixMilli()
 	art.Ctime = now

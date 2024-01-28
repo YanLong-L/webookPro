@@ -19,6 +19,17 @@ func NewGORMArticleDAO(db *gorm.DB) ArticleDAO {
 	}
 }
 
+// GetByAuthor 通过authorid 获取 创作者文章列表
+func (d *GORMArticleDAO) GetByAuthor(ctx context.Context, authorId int64, offset int, limit int) ([]Article, error) {
+	var res []Article
+	err := d.db.WithContext(ctx).Model(&Article{}).Where("author_id = ?", authorId).
+		Offset(offset).
+		Limit(limit).
+		Order("utime DESC").
+		Find(&res).Error
+	return res, err
+}
+
 // SyncStatus 同步线上库制作库帖子状态
 func (d *GORMArticleDAO) SyncStatus(ctx context.Context, article Article, status domain.ArticleStatus) error {
 	now := time.Now().UnixMilli()

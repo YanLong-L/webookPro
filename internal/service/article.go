@@ -14,6 +14,7 @@ type ArticleServcie interface {
 	Publish(ctx context.Context, article domain.Article) (int64, error)
 	PublishV1(ctx context.Context, article domain.Article) (int64, error)
 	Withdraw(ctx context.Context, art domain.Article) error
+	List(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error)
 }
 
 type articleService struct {
@@ -31,6 +32,11 @@ func NewArticleService(repo article.ArticleRepository) ArticleServcie {
 	return &articleService{
 		repo: repo,
 	}
+}
+
+// List 创作者文章列表
+func (s *articleService) List(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error) {
+	return s.repo.List(ctx, uid, offset, limit)
 }
 
 // Withdraw 撤回帖子发表
