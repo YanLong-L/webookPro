@@ -56,8 +56,7 @@ func (u *ArticleHandler) Edit(ctx *gin.Context) {
 	if err != nil {
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
-			Msg:  "OK",
-			Data: id,
+			Msg:  "系统错误",
 		})
 
 	}

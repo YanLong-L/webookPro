@@ -122,6 +122,8 @@ func (s *ArticleMongoHandlerTestSuite) TestArticleHandler_Edit() {
 			},
 			wantCode: 200,
 			wantResult: Result[int64]{
+				Code: 2,
+				Msg:  "OK",
 				Data: 1,
 			},
 		},
@@ -170,6 +172,8 @@ func (s *ArticleMongoHandlerTestSuite) TestArticleHandler_Edit() {
 			},
 			wantCode: 200,
 			wantResult: Result[int64]{
+				Code: 2,
+				Msg:  "OK",
 				Data: 2,
 			},
 		},
