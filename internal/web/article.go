@@ -21,14 +21,17 @@ type handler interface {
 var _ handler = (*ArticleHandler)(nil)
 
 type ArticleHandler struct {
-	svc service.ArticleServcie
-	l   logger.Logger
+	svc     service.ArticleServcie
+	intrSvc service.InteractiveService
+	l       logger.Logger
+	biz     string
 }
 
-func NewArticleHandler(svc service.ArticleServcie, l logger.Logger) *ArticleHandler {
+func NewArticleHandler(svc service.ArticleServcie, intrSvc service.InteractiveService, l logger.Logger) *ArticleHandler {
 	return &ArticleHandler{
-		svc: svc,
-		l:   l,
+		svc:     svc,
+		intrSvc: intrSvc,
+		l:       l,
 	}
 }
 
@@ -65,6 +68,11 @@ func (u *ArticleHandler) PubDetail(ctx *gin.Context) {
 		u.l.Error("获得文章信息失败", logger.Error(err))
 		return
 	}
+	// 加载完详情数据后，这里要阅读数 + 1
+	go func() {
+		// 开一个goroutine 异步去执行
+		er := u.intrSvc.IncrReadCnt()
+	}()
 	ctx.JSON(http.StatusOK, Result{
 		Data: ArticleVO{
 			Id:      art.Id,
