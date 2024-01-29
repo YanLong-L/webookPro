@@ -1,9 +1,11 @@
 package web
 
 import (
+	"fmt"
 	"github.com/ecodeclub/ekit/slice"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 	"time"
 	"webookpro/internal/domain"
 	"webookpro/internal/service"
@@ -42,8 +44,80 @@ func (u *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 	pub.GET("/:id", u.PubDetail)
 }
 
-func (u *ArticleHandler) Detail(ctx *gin.Context, uc ijwt.UserClaims) (ginx.Result, error) {
+// PubDetail 线上库帖子详情
+func (u *ArticleHandler) PubDetail(ctx *gin.Context) {
+	idstr := ctx.Param("id")
+	id, err := strconv.ParseInt(idstr, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 4,
+			Msg:  "参数错误",
+		})
+		u.l.Error("前端输入的 ID 不对", logger.Error(err))
+		return
+	}
+	art, err := u.svc.GetPublishedById(ctx, id)
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		u.l.Error("获得文章信息失败", logger.Error(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Data: ArticleVO{
+			Id:      art.Id,
+			Title:   art.Title,
+			Status:  art.Status.ToUint8(),
+			Content: art.Content,
+			// 要把作者信息带出去
+			Author: art.Author.Name,
+			Ctime:  art.Ctime.Format(time.DateTime),
+			Utime:  art.Utime.Format(time.DateTime),
+		},
+	})
+}
 
+// Detail 创作者帖子详情
+func (u *ArticleHandler) Detail(ctx *gin.Context, claims ijwt.UserClaims) (ginx.Result, error) {
+	paramId := ctx.Param("id")
+	artId, err := strconv.ParseInt(paramId, 10, 64)
+	if err != nil {
+		return ginx.Result{
+			Code: 4,
+			Msg:  "系统错误",
+		}, err
+	}
+	art, err := u.svc.GetById(ctx, artId)
+	if err != nil {
+		return ginx.Result{
+			Code: 5,
+			Msg:  "系统错误",
+		}, err
+	}
+	// 判定登录用户是否时这篇帖子的创作者
+	if claims.Uid != art.Author.Id {
+		return ginx.Result{
+			Code: 4,
+			// 也不需要告诉前端究竟发生了什么
+			Msg: "输入有误",
+		}, fmt.Errorf("非法访问文章，创作者 ID 不匹配 %d", claims.Uid)
+	}
+	return ginx.Result{
+		Data: ArticleVO{
+			Id:    art.Id,
+			Title: art.Title,
+			// 不需要这个摘要信息
+			//Abstract: art.Abstract(),
+			Status:  art.Status.ToUint8(),
+			Content: art.Content,
+			// 这个是创作者看自己的文章列表，也不需要这个字段
+			//Author: art.Author
+			Ctime: art.Ctime.Format(time.DateTime),
+			Utime: art.Utime.Format(time.DateTime),
+		},
+	}, nil
 }
 
 // List 创作者文章列表

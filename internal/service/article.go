@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"time"
 	"webookpro/internal/domain"
 	"webookpro/internal/repository/article"
@@ -15,6 +16,8 @@ type ArticleServcie interface {
 	PublishV1(ctx context.Context, article domain.Article) (int64, error)
 	Withdraw(ctx context.Context, art domain.Article) error
 	List(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error)
+	GetById(ctx context.Context, id int64) (domain.Article, error)
+	GetPublishedById(ctx *gin.Context, id int64) (domain.Article, error)
 }
 
 type articleService struct {
@@ -32,6 +35,16 @@ func NewArticleService(repo article.ArticleRepository) ArticleServcie {
 	return &articleService{
 		repo: repo,
 	}
+}
+
+// GetPublishedById 获取线上库帖子详情
+func (s *articleService) GetPublishedById(ctx *gin.Context, artId int64) (domain.Article, error) {
+	return s.repo.GetPublishedById(ctx, artId)
+}
+
+// GetById 获取创作者文章详情
+func (s *articleService) GetById(ctx context.Context, artId int64) (domain.Article, error) {
+	return s.repo.GetById(ctx, artId)
 }
 
 // List 创作者文章列表

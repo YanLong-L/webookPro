@@ -19,6 +19,24 @@ func NewGORMArticleDAO(db *gorm.DB) ArticleDAO {
 	}
 }
 
+func (d *GORMArticleDAO) GetPubById(ctx context.Context, id int64) (PublishedArticle, error) {
+	var art PublishedArticle
+	err := d.db.WithContext(ctx).Model(&PublishedArticle{}).Where("id = ?", id).First(&art).Error
+	if err != nil {
+		return PublishedArticle{}, err
+	}
+	return art, nil
+}
+
+func (d *GORMArticleDAO) GetById(ctx context.Context, artId int64) (Article, error) {
+	var art Article
+	err := d.db.WithContext(ctx).Model(&Article{}).Where("id = ?", artId).First(&art).Error
+	if err != nil {
+		return Article{}, err
+	}
+	return art, err
+}
+
 // GetByAuthor 通过authorid 获取 创作者文章列表
 func (d *GORMArticleDAO) GetByAuthor(ctx context.Context, authorId int64, offset int, limit int) ([]Article, error) {
 	var res []Article

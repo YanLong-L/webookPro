@@ -3,9 +3,11 @@ package article
 import (
 	"context"
 	"github.com/ecodeclub/ekit/slice"
+	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"time"
 	"webookpro/internal/domain"
+	"webookpro/internal/repository"
 	"webookpro/internal/repository/cache"
 	"webookpro/internal/repository/dao/article"
 	"webookpro/pkg/logger"
@@ -18,12 +20,15 @@ type ArticleRepository interface {
 	SyncV1(ctx context.Context, article domain.Article) (int64, error)
 	SyncStatus(ctx context.Context, art domain.Article, status domain.ArticleStatus) error
 	List(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error)
+	GetById(ctx context.Context, artId int64) (domain.Article, error)
+	GetPublishedById(ctx *gin.Context, artId int64) (domain.Article, error)
 }
 
 type CachedArticleRepository struct {
-	dao   article.ArticleDAO
-	cache cache.ArticleCache
-	l     logger.Logger
+	dao      article.ArticleDAO
+	cache    cache.ArticleCache
+	userRepo repository.UserRepository
+	l        logger.Logger
 
 	// SyncV1  操作两个 DAO
 	authorDAO ArticleAuthorRepository
@@ -37,6 +42,39 @@ func NewCachedArticleRepository(dao article.ArticleDAO, cache cache.ArticleCache
 		cache: cache,
 		l:     l,
 	}
+}
+
+// GetPublishedById 获取线上库文章详情
+func (r *CachedArticleRepository) GetPublishedById(ctx *gin.Context, artId int64) (domain.Article, error) {
+	art, err := r.dao.GetPubById(ctx, artId)
+	if err != nil {
+		return domain.Article{}, err
+	}
+	// 你在这边要组装 user 了，适合单体应用
+	usr, err := r.userRepo.FindById(ctx, art.AuthorId)
+	res := domain.Article{
+		Id:      art.Id,
+		Title:   art.Title,
+		Status:  domain.ArticleStatus(art.Status),
+		Content: art.Content,
+		Author: domain.Author{
+			Id:   usr.Id,
+			Name: usr.Nickname,
+		},
+		Ctime: time.UnixMilli(art.Ctime),
+		Utime: time.UnixMilli(art.Utime),
+	}
+	return res, nil
+}
+
+// GetById 获取创作者文章详情
+func (r *CachedArticleRepository) GetById(ctx context.Context, artId int64) (domain.Article, error) {
+	artEntity, err := r.dao.GetById(ctx, artId)
+	if err != nil {
+		return domain.Article{}, err
+	}
+	art := r.entitytoDomain(artEntity)
+	return art, err
 }
 
 // List 创作者文章列表

@@ -51,13 +51,23 @@ func InitCollections(db *mongo.Database) error {
 	return err
 }
 
-func NewMongoDBArticleDAO(client *mongo.Client, db *mongo.Database, node *snowflake.Node) *MongoDBArticleDAO {
+func NewMongoDBArticleDAO(client *mongo.Client, db *mongo.Database, node *snowflake.Node) ArticleDAO {
 	return &MongoDBArticleDAO{
 		client:  client,
 		col:     db.Collection("articles"),
 		liveCol: db.Collection("published_articles"),
 		node:    node,
 	}
+}
+
+func (m MongoDBArticleDAO) GetPubById(ctx context.Context, id int64) (PublishedArticle, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m MongoDBArticleDAO) GetById(ctx context.Context, id int64) (Article, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (m MongoDBArticleDAO) GetByAuthor(ctx context.Context, authorId int64, offset int, limit int) ([]Article, error) {

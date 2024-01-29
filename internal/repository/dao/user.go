@@ -91,4 +91,5 @@ type User struct {
 	WechatUnionID sql.NullString // 微信的字段
 	WechatOpenID  sql.NullString `gorm:"unique"` // 微信的字段
 	Phone         sql.NullString `gorm:"unique"` // 和 email一样是唯一索引，但是null值不冲突
+	Nickname      string
 }
