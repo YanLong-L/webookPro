@@ -45,13 +45,33 @@ func InitWebServer() *gin.Engine {
 }
 
 func InitArticleHandler(dao2 article.ArticleDAO) *web.ArticleHandler {
-	articleRepository := article2.NewCachedArticleRepository(dao2)
-	articleServcie := service.NewArticleService(articleRepository)
+	cmdable := InitRDB()
+	articleCache := cache.NewRedisArticleCache(cmdable)
 	logger := ioc.InitLogger()
-	articleHandler := web.NewArticleHandler(articleServcie, logger)
+	articleRepository := article2.NewCachedArticleRepository(dao2, articleCache, logger)
+	articleServcie := service.NewArticleService(articleRepository)
+	db := InitDB()
+	interactiveDAO := dao.NewGORMInteractiveDAO(db)
+	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
+	interactiveRepository := repository.NewCachedIntrRepository(interactiveDAO, interactiveCache, logger)
+	interactiveService := service.NewInteractiveService(interactiveRepository, logger)
+	articleHandler := web.NewArticleHandler(articleServcie, interactiveService, logger)
 	return articleHandler
+}
+
+func InitInteractiveService() service.InteractiveService {
+	db := InitDB()
+	interactiveDAO := dao.NewGORMInteractiveDAO(db)
+	cmdable := InitRDB()
+	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
+	logger := ioc.InitLogger()
+	interactiveRepository := repository.NewCachedIntrRepository(interactiveDAO, interactiveCache, logger)
+	interactiveService := service.NewInteractiveService(interactiveRepository, logger)
+	return interactiveService
 }
 
 // wire.go:
 
 var thirdProvider = wire.NewSet(InitDB, InitRDB, ioc.InitLogger)
+
+var interactiveSvcProvider = wire.NewSet(service.NewInteractiveService, repository.NewCachedIntrRepository, dao.NewGORMInteractiveDAO, cache.NewRedisInteractiveCache)

@@ -45,6 +45,25 @@ func (u *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 
 	pub := ug.Group("/pub")
 	pub.GET("/:id", u.PubDetail)
+	pub.POST("/like", ginx.WrapBodyAndToken[LikeReq,
+		ijwt.UserClaims](u.Like))
+}
+
+// Like 点赞或取消点赞
+func (u *ArticleHandler) Like(ctx *gin.Context, req LikeReq, uc ijwt.UserClaims) (ginx.Result, error) {
+	var err error
+	if req.Like {
+		err = u.intrSvc.Like(ctx, u.biz, req.Id, uc.Uid)
+	} else {
+		err = u.intrSvc.CancelLike(ctx, u.biz, req.Id, uc.Uid)
+	}
+	if err != nil {
+		return ginx.Result{
+			Code: 5,
+			Msg:  "系统错误",
+		}, err
+	}
+	return ginx.Result{Msg: "OK"}, nil
 }
 
 // PubDetail 线上库帖子详情
@@ -71,7 +90,12 @@ func (u *ArticleHandler) PubDetail(ctx *gin.Context) {
 	// 加载完详情数据后，这里要阅读数 + 1
 	go func() {
 		// 开一个goroutine 异步去执行
-		er := u.intrSvc.IncrReadCnt()
+		er := u.intrSvc.IncrReadCnt(ctx, u.biz, art.Id)
+		if er != nil {
+			u.l.Error("增加阅读计数失败",
+				logger.Int64("artId", art.Id),
+				logger.Error(er))
+		}
 	}()
 	ctx.JSON(http.StatusOK, Result{
 		Data: ArticleVO{

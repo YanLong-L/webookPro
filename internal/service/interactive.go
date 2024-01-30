@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"webookpro/internal/domain"
+	"webookpro/internal/repository"
+	"webookpro/pkg/logger"
 )
 
 type InteractiveService interface {
@@ -16,34 +18,36 @@ type InteractiveService interface {
 	Get(ctx context.Context, biz string, bizId, uid int64) (domain.Interactive, error)
 }
 
-type interactive struct {
+type interactiveService struct {
+	repo repository.InteractiveRepository
+	l    logger.Logger
 }
 
-func NewInteractiveService() InteractiveService {
-	return &interactive{}
+func NewInteractiveService(repo repository.InteractiveRepository, l logger.Logger) InteractiveService {
+	return &interactiveService{
+		repo: repo,
+		l:    l,
+	}
 }
 
-func (i interactive) IncrReadCnt(ctx context.Context, biz string, bizId int64) error {
+func (i *interactiveService) IncrReadCnt(ctx context.Context, biz string, bizId int64) error {
+	return i.repo.IncrReadCnt(ctx, biz, bizId)
+}
+
+func (i *interactiveService) Like(ctx context.Context, biz string, bizId int64, uid int64) error {
+	return i.repo.IncrLike(ctx, biz, bizId, uid)
+}
+
+func (i *interactiveService) CancelLike(ctx context.Context, biz string, bizId int64, uid int64) error {
+	return i.repo.DecrLike(ctx, biz, bizId, uid)
+}
+
+func (i *interactiveService) Collect(ctx context.Context, biz string, bizId, cid, uid int64) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (i interactive) Like(ctx context.Context, biz string, bizId int64, uid int64) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (i interactive) CancelLike(ctx context.Context, biz string, bizId int64, uid int64) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (i interactive) Collect(ctx context.Context, biz string, bizId, cid, uid int64) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (i interactive) Get(ctx context.Context, biz string, bizId, uid int64) (domain.Interactive, error) {
+func (i *interactiveService) Get(ctx context.Context, biz string, bizId, uid int64) (domain.Interactive, error) {
 	//TODO implement me
 	panic("implement me")
 }

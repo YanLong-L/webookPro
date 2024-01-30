@@ -18,6 +18,13 @@ import (
 
 var thirdProvider = wire.NewSet(InitDB, InitRDB, ioc.InitLogger)
 
+var interactiveSvcProvider = wire.NewSet(
+	service.NewInteractiveService,
+	repository.NewCachedIntrRepository,
+	dao.NewGORMInteractiveDAO,
+	cache.NewRedisInteractiveCache,
+)
+
 func InitWebServer() *gin.Engine {
 	wire.Build(
 		// 第三方依赖
@@ -46,6 +53,13 @@ func InitArticleHandler(dao article2.ArticleDAO) *web.ArticleHandler {
 		service.NewArticleService,
 		web.NewArticleHandler,
 		article.NewCachedArticleRepository,
+		cache.NewRedisArticleCache,
+		interactiveSvcProvider,
 	)
 	return &web.ArticleHandler{}
+}
+
+func InitInteractiveService() service.InteractiveService {
+	wire.Build(thirdProvider, interactiveSvcProvider)
+	return service.NewInteractiveService(nil, nil)
 }
