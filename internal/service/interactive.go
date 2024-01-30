@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"golang.org/x/sync/errgroup"
 	"webookpro/internal/domain"
 	"webookpro/internal/repository"
 	"webookpro/pkg/logger"
@@ -43,11 +44,36 @@ func (i *interactiveService) CancelLike(ctx context.Context, biz string, bizId i
 }
 
 func (i *interactiveService) Collect(ctx context.Context, biz string, bizId, cid, uid int64) error {
-	//TODO implement me
-	panic("implement me")
+	return i.repo.AddCollectionItem(ctx, biz, bizId, cid, uid)
 }
 
 func (i *interactiveService) Get(ctx context.Context, biz string, bizId, uid int64) (domain.Interactive, error) {
-	//TODO implement me
-	panic("implement me")
+	var (
+		eg        errgroup.Group
+		intr      domain.Interactive
+		liked     bool
+		collected bool
+	)
+	eg.Go(func() error {
+		var err error
+		intr, err = i.repo.Get(ctx, biz, bizId)
+		return err
+	})
+	eg.Go(func() error {
+		var err error
+		liked, err = i.repo.Liked(ctx, biz, bizId, uid)
+		return err
+	})
+	eg.Go(func() error {
+		var err error
+		liked, err = i.repo.Collected(ctx, biz, bizId, uid)
+		return err
+	})
+	err := eg.Wait()
+	if err != nil {
+		return domain.Interactive{}, err
+	}
+	intr.Liked = liked
+	intr.Collected = collected
+	return intr, err
 }

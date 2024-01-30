@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ecodeclub/ekit/slice"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/errgroup"
 	"net/http"
 	"strconv"
 	"time"
@@ -32,6 +33,7 @@ func NewArticleHandler(svc service.ArticleServcie, intrSvc service.InteractiveSe
 		svc:     svc,
 		intrSvc: intrSvc,
 		l:       l,
+		biz:     "article",
 	}
 }
 
@@ -78,13 +80,31 @@ func (u *ArticleHandler) PubDetail(ctx *gin.Context) {
 		u.l.Error("前端输入的 ID 不对", logger.Error(err))
 		return
 	}
-	art, err := u.svc.GetPublishedById(ctx, id)
+
+	var (
+		eg   errgroup.Group
+		art  domain.Article
+		intr domain.Interactive
+	)
+	eg.Go(func() error {
+		art, err = u.svc.GetPublishedById(ctx, id)
+		return err
+	})
+	eg.Go(func() error {
+		// 在这里要获取文章的互动信息
+		uc := ctx.MustGet("claims").(ijwt.UserClaims)
+		// 这个地方可以容忍错误
+		intr, err = u.intrSvc.Get(ctx, u.biz, id, uc.Uid)
+		return err
+	})
+	// 在这儿等，要保证前面两个
+	err = eg.Wait()
 	if err != nil {
+		// 代表查询出错了
 		ctx.JSON(http.StatusOK, Result{
 			Code: 5,
 			Msg:  "系统错误",
 		})
-		u.l.Error("获得文章信息失败", logger.Error(err))
 		return
 	}
 	// 加载完详情数据后，这里要阅读数 + 1
@@ -99,14 +119,18 @@ func (u *ArticleHandler) PubDetail(ctx *gin.Context) {
 	}()
 	ctx.JSON(http.StatusOK, Result{
 		Data: ArticleVO{
-			Id:      art.Id,
-			Title:   art.Title,
-			Status:  art.Status.ToUint8(),
-			Content: art.Content,
-			// 要把作者信息带出去
-			Author: art.Author.Name,
-			Ctime:  art.Ctime.Format(time.DateTime),
-			Utime:  art.Utime.Format(time.DateTime),
+			Id:         art.Id,
+			Title:      art.Title,
+			Status:     art.Status.ToUint8(),
+			Content:    art.Content,
+			Author:     art.Author.Name, // 要把作者信息带出去
+			Ctime:      art.Ctime.Format(time.DateTime),
+			Utime:      art.Utime.Format(time.DateTime),
+			Liked:      intr.Liked,
+			Collected:  intr.Collected,
+			LikeCnt:    intr.LikeCnt,
+			ReadCnt:    intr.ReadCnt,
+			CollectCnt: intr.CollectCnt,
 		},
 	})
 }
