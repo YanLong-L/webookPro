@@ -16,6 +16,7 @@ type InteractiveDAO interface {
 	Get(ctx context.Context, biz string, bizId int64) (Interactive, error)
 	InsertCollectionBiz(ctx context.Context, cb UserCollectionBiz) error
 	GetCollectionInfo(ctx context.Context, biz string, bizId, uid int64) (UserCollectionBiz, error)
+	BatchIncrReadCnt(ctx context.Context, bizs []string, ids []int64) error
 }
 
 type GORMInteractiveDAO struct {
@@ -26,6 +27,21 @@ func NewGORMInteractiveDAO(db *gorm.DB) InteractiveDAO {
 	return &GORMInteractiveDAO{
 		db: db,
 	}
+}
+
+func (dao GORMInteractiveDAO) BatchIncrReadCnt(ctx context.Context, bizs []string, ids []int64) error {
+	return dao.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		txDAO := NewGORMInteractiveDAO(tx)
+		for i := range bizs {
+			err := txDAO.IncrReadCnt(ctx, bizs[i], ids[i])
+			if err != nil {
+				// 记个日志就拉到
+				// 也可以 return err
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 // IncrReadCnt 增加阅读计数

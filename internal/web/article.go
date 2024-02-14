@@ -86,8 +86,9 @@ func (u *ArticleHandler) PubDetail(ctx *gin.Context) {
 		art  domain.Article
 		intr domain.Interactive
 	)
+	uc := ctx.MustGet("users").(ijwt.UserClaims)
 	eg.Go(func() error {
-		art, err = u.svc.GetPublishedById(ctx, id)
+		art, err = u.svc.GetPublishedById(ctx, id, uc.Uid)
 		return err
 	})
 	eg.Go(func() error {

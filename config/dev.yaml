@@ -1,5 +1,9 @@
 db:
-  dsn: "root:mysql@tcp(localhost:3307)/webookpro"
+  dsn: "root:root@tcp(localhost:13316)/webookpro"
 
 redis:
   addr: "localhost:6379"
+
+kafka:
+  addrs:
+    - "localhost:9094"

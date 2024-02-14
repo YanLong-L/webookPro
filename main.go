@@ -8,11 +8,19 @@ import (
 func main() {
 	InitViper()
 	InitLogger()
-	server := InitWebServer()
+	app := InitWebServer()
+	for _, c := range app.consumers {
+		err := c.Start()
+		if err != nil {
+			panic(err)
+		}
+	}
+	server := app.web
 	err := server.Run(":8080")
 	if err != nil {
 		panic(err)
 	}
+
 }
 
 func InitViper() {

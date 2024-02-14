@@ -18,6 +18,8 @@ type InteractiveRepository interface {
 	Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error)
 	Liked(ctx context.Context, biz string, id int64, uid int64) (bool, error)
 	Collected(ctx context.Context, biz string, id int64, uid int64) (bool, error)
+	BatchIncrReadCnt(ctx context.Context, bizs []string, ids []int64) error
+	AddRecord(ctx context.Context, aid int64, uid int64) error
 }
 
 type CachedIntrRepository struct {
@@ -32,6 +34,15 @@ func NewCachedIntrRepository(dao dao.InteractiveDAO, cache cache.InteractiveCach
 		cache: cache,
 		l:     l,
 	}
+}
+
+func (c *CachedIntrRepository) AddRecord(ctx context.Context, aid int64, uid int64) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c *CachedIntrRepository) BatchIncrReadCnt(ctx context.Context, bizs []string, bizIds []int64) error {
+	return c.dao.BatchIncrReadCnt(ctx, bizs, bizIds)
 }
 
 func (c *CachedIntrRepository) IncrReadCnt(ctx context.Context, biz string, bizId int64) error {

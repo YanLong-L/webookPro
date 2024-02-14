@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"time"
 	"webookpro/internal/domain"
+	events "webookpro/internal/events/article"
 	"webookpro/internal/repository/article"
 	"webookpro/pkg/logger"
 )
@@ -17,7 +18,7 @@ type ArticleServcie interface {
 	Withdraw(ctx context.Context, art domain.Article) error
 	List(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error)
 	GetById(ctx context.Context, id int64) (domain.Article, error)
-	GetPublishedById(ctx *gin.Context, id int64) (domain.Article, error)
+	GetPublishedById(ctx *gin.Context, id, uid int64) (domain.Article, error)
 }
 
 type articleService struct {
@@ -28,18 +29,39 @@ type articleService struct {
 	reader article.ArticleReaderRepository
 
 	// 引入logger
-	l logger.Logger
+	l        logger.Logger
+	producer events.Producer
 }
 
-func NewArticleService(repo article.ArticleRepository) ArticleServcie {
+func NewArticleService(repo article.ArticleRepository,
+	producer events.Producer,
+	l logger.Logger) ArticleServcie {
 	return &articleService{
-		repo: repo,
+		repo:     repo,
+		l:        l,
+		producer: producer,
 	}
 }
 
 // GetPublishedById 获取线上库帖子详情
-func (s *articleService) GetPublishedById(ctx *gin.Context, artId int64) (domain.Article, error) {
-	return s.repo.GetPublishedById(ctx, artId)
+func (s *articleService) GetPublishedById(ctx *gin.Context, artId int64, uid int64) (domain.Article, error) {
+	art, err := s.repo.GetPublishedById(ctx, artId)
+	if err == nil {
+		go func() {
+			er := s.producer.ProduceReadEvent(
+				ctx,
+				events.ReadEvent{
+					// 即便你的消费者要用 art 的里面的数据，
+					// 让它去查询，你不要在 event 里面带
+					Uid: uid,
+					Aid: artId,
+				})
+			if er == nil {
+				s.l.Error("发送读者阅读事件失败")
+			}
+		}()
+	}
+	return art, err
 }
 
 // GetById 获取创作者文章详情

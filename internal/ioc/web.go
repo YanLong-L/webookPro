@@ -16,7 +16,10 @@ import (
 	limit "webookpro/pkg/ratelimit"
 )
 
-func InitWebServer(middlewares []gin.HandlerFunc, userHdl *web.UserHandler, wechatHdl *web.OAuth2WechatHandler) *gin.Engine {
+func InitWebServer(middlewares []gin.HandlerFunc,
+	userHdl *web.UserHandler,
+	wechatHdl *web.OAuth2WechatHandler,
+	articleHdl *web.ArticleHandler) *gin.Engine {
 	server := gin.Default()
 
 	// 注册中间件
@@ -25,6 +28,7 @@ func InitWebServer(middlewares []gin.HandlerFunc, userHdl *web.UserHandler, wech
 	// 注册路由
 	userHdl.RegisterRoutes(server)
 	wechatHdl.RegisterRoutes(server)
+	articleHdl.RegisterRoutes(server)
 
 	// 设置session
 	//store := cookie.NewStore([]byte("secret"))

@@ -20,3 +20,10 @@ func Int64(key string, val int64) Field {
 		Value: val,
 	}
 }
+
+func Int32(key string, val int32) Field {
+	return Field{
+		Key:   key,
+		Value: val,
+	}
+}

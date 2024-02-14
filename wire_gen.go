@@ -7,11 +7,13 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
+	article3 "webookpro/internal/events/article"
 	"webookpro/internal/ioc"
 	"webookpro/internal/repository"
+	article2 "webookpro/internal/repository/article"
 	"webookpro/internal/repository/cache"
 	"webookpro/internal/repository/dao"
+	"webookpro/internal/repository/dao/article"
 	"webookpro/internal/service"
 	"webookpro/internal/web"
 	"webookpro/internal/web/jwt"
@@ -19,7 +21,7 @@ import (
 
 // Injectors from wire.go:
 
-func InitWebServer() *gin.Engine {
+func InitWebServer() *App {
 	cmdable := ioc.InitRDB()
 	limiter := ioc.InitLimiter(cmdable)
 	jwtHandler := jwt.NewRedisJWTHandler(cmdable)
@@ -37,6 +39,24 @@ func InitWebServer() *gin.Engine {
 	userHandler := web.NewUserHandler(userService, codeService, jwtHandler)
 	oauth2Service := ioc.InitWechatService()
 	oAuth2WechatHandler := web.NewOAuth2WechatHandler(oauth2Service, userService, jwtHandler)
-	engine := ioc.InitWebServer(v, userHandler, oAuth2WechatHandler)
-	return engine
+	articleDAO := article.NewGORMArticleDAO(db)
+	articleCache := cache.NewRedisArticleCache(cmdable)
+	articleRepository := article2.NewCachedArticleRepository(articleDAO, articleCache, logger)
+	client := ioc.InitKafka()
+	syncProducer := ioc.NewSyncProducer(client)
+	producer := article3.NewKafkaProducer(syncProducer)
+	articleServcie := service.NewArticleService(articleRepository, producer, logger)
+	interactiveDAO := dao.NewGORMInteractiveDAO(db)
+	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
+	interactiveRepository := repository.NewCachedIntrRepository(interactiveDAO, interactiveCache, logger)
+	interactiveService := service.NewInteractiveService(interactiveRepository, logger)
+	articleHandler := web.NewArticleHandler(articleServcie, interactiveService, logger)
+	engine := ioc.InitWebServer(v, userHandler, oAuth2WechatHandler, articleHandler)
+	interactiveReadEventBatchConsumer := article3.NewInteractiveReadEventBatchConsumer(client, interactiveRepository, logger)
+	v2 := ioc.NewConsumers(interactiveReadEventBatchConsumer)
+	app := &App{
+		web:       engine,
+		consumers: v2,
+	}
+	return app
 }
