@@ -4,12 +4,14 @@ import (
 	"context"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
 	"strings"
 	"time"
 	"webookpro/internal/web"
 	ijwt "webookpro/internal/web/jwt"
 	"webookpro/internal/web/middleware"
+	"webookpro/pkg/ginx"
 	glogger "webookpro/pkg/ginx/middlewares/logger"
 	"webookpro/pkg/ginx/middlewares/metric"
 	"webookpro/pkg/ginx/middlewares/ratelimit"
@@ -97,6 +99,12 @@ func rateLimitMiddleware(limiter limit.Limiter) gin.HandlerFunc {
 
 // prometheus web 中间件
 func metricsMiddleware() gin.HandlerFunc {
+	ginx.InitCounter(prometheus.CounterOpts{
+		Namespace: "geekbang_daming",
+		Subsystem: "webook",
+		Name:      "http_biz_code",
+		Help:      "HTTP 的业务错误码",
+	})
 	return (&metric.MiddlewareBuilder{
 		Namespace:  "geekbang",
 		Subsystem:  "webookpro",

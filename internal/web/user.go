@@ -8,6 +8,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"webookpro/internal/domain"
+	"webookpro/internal/errs"
 	"webookpro/internal/service"
 	ijwt "webookpro/internal/web/jwt"
 )
@@ -243,7 +244,10 @@ func (u *UserHandler) LoginJWT(ctx *gin.Context) {
 	// 登录
 	user, err := u.svc.Login(ctx, req.Email, req.Password)
 	if err == service.ErrInvalidUserOrPassword {
-		ctx.String(http.StatusOK, "用户名或密码不对")
+		ctx.JSON(http.StatusOK, Result{
+			Code: errs.UserInvalidOrPassword,
+			Msg:  "用户不存在或密码错误",
+		})
 		return
 	}
 	if err != nil {
