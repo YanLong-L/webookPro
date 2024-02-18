@@ -11,6 +11,7 @@ import (
 	ijwt "webookpro/internal/web/jwt"
 	"webookpro/internal/web/middleware"
 	glogger "webookpro/pkg/ginx/middlewares/logger"
+	"webookpro/pkg/ginx/middlewares/metric"
 	"webookpro/pkg/ginx/middlewares/ratelimit"
 	"webookpro/pkg/logger"
 	limit "webookpro/pkg/ratelimit"
@@ -50,6 +51,7 @@ func InitMiddlewares(limiter limit.Limiter, jwtHdl ijwt.JwtHandler, l logger.Log
 		//logMiddleware(l),
 		corsMiddleware(),
 		jwtMiddleware(jwtHdl),
+		metricsMiddleware(),
 	}
 
 }
@@ -91,6 +93,17 @@ func jwtMiddleware(jwtHdl ijwt.JwtHandler) gin.HandlerFunc {
 // rateLimitMiddleware 限流中间件
 func rateLimitMiddleware(limiter limit.Limiter) gin.HandlerFunc {
 	return ratelimit.NewBuilder(InitRDB(), limiter).Build()
+}
+
+// prometheus web 中间件
+func metricsMiddleware() gin.HandlerFunc {
+	return (&metric.MiddlewareBuilder{
+		Namespace:  "geekbang",
+		Subsystem:  "webookpro",
+		Name:       "gin_http",
+		Help:       "统计 GIN 的 HTTP 接口",
+		InstanceID: "my-instance-1",
+	}).Build()
 }
 
 func logMiddleware(l logger.Logger) gin.HandlerFunc {
