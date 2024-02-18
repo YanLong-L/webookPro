@@ -6,6 +6,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"go.opentelemetry.io/otel/trace"
 	"net/http"
 	"webookpro/internal/domain"
 	"webookpro/internal/errs"
@@ -103,6 +104,9 @@ func (u *UserHandler) SignUp(ctx *gin.Context) {
 		Password: req.Password,
 	})
 	if err == service.ErrUserDuplicateEmail {
+		// 这是复用
+		span := trace.SpanFromContext(ctx.Request.Context())
+		span.AddEvent("邮件冲突")
 		ctx.String(http.StatusOK, "邮箱重复，请换一个邮箱")
 		return
 	}

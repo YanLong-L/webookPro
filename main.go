@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"net/http"
+	"time"
+	"webookpro/internal/ioc"
 )
 
 func main() {
@@ -14,6 +17,8 @@ func main() {
 	InitLogger()
 	// 初始化Prometheus
 	InitPrometheus()
+	// 初始化opentelemetry
+	closeFunc := ioc.InitOTEL()
 	// 初始化 app
 	app := InitWebServer()
 	// 开启所有消费者
@@ -29,6 +34,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// 一分钟内shutdown trace provider
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	closeFunc(ctx)
 
 }
 

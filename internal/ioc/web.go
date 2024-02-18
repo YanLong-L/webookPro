@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"strings"
 	"time"
 	"webookpro/internal/web"
@@ -54,6 +55,7 @@ func InitMiddlewares(limiter limit.Limiter, jwtHdl ijwt.JwtHandler, l logger.Log
 		corsMiddleware(),
 		jwtMiddleware(jwtHdl),
 		metricsMiddleware(),
+		otelgin.Middleware("webookpro"),
 	}
 
 }
