@@ -11,12 +11,15 @@ import (
 	"webookpro/pkg/logger"
 )
 
-type ArticleServcie interface {
+//go:generate mockgen -source=article.go -package=svcmocks -destination=mock/article.mock.go ArticleService
+type ArticleService interface {
 	Store(ctx context.Context, article domain.Article) (int64, error)
 	Publish(ctx context.Context, article domain.Article) (int64, error)
 	PublishV1(ctx context.Context, article domain.Article) (int64, error)
 	Withdraw(ctx context.Context, art domain.Article) error
 	List(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error)
+	// ListPub 只会取 start 七天内的数据
+	ListPub(ctx context.Context, start time.Time, offset, limit int) ([]domain.Article, error)
 	GetById(ctx context.Context, id int64) (domain.Article, error)
 	GetPublishedById(ctx *gin.Context, id, uid int64) (domain.Article, error)
 }
@@ -35,12 +38,18 @@ type articleService struct {
 
 func NewArticleService(repo article.ArticleRepository,
 	producer events.Producer,
-	l logger.Logger) ArticleServcie {
+	l logger.Logger) ArticleService {
 	return &articleService{
 		repo:     repo,
 		l:        l,
 		producer: producer,
 	}
+}
+
+// ListPub 只会取7天内的数据
+func (s *articleService) ListPub(ctx context.Context, start time.Time, offset, limit int) ([]domain.Article, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 // GetPublishedById 获取线上库帖子详情
@@ -81,7 +90,7 @@ func (s *articleService) Withdraw(ctx context.Context, art domain.Article) error
 
 // v1: NewArticleServiceV1 在serice层操作 author和 reader 两个repo
 func NewArticleServiceV1(repo article.ArticleRepository, author article.ArticleAuthorRepository,
-	reader article.ArticleReaderRepository, l logger.Logger) ArticleServcie {
+	reader article.ArticleReaderRepository, l logger.Logger) ArticleService {
 	return &articleService{
 		repo:   repo,
 		reader: reader,

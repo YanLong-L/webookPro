@@ -66,6 +66,7 @@ func TestSelect(t *testing.T) {
 		time.Sleep(time.Millisecond * 100)
 		ch2 <- 123
 	}()
+	time.Sleep(time.Second * 2)
 	select {
 	case val := <-ch1:
 		t.Log("ch1", val)

@@ -22,13 +22,13 @@ type handler interface {
 var _ handler = (*ArticleHandler)(nil)
 
 type ArticleHandler struct {
-	svc     service.ArticleServcie
+	svc     service.ArticleService
 	intrSvc service.InteractiveService
 	l       logger.Logger
 	biz     string
 }
 
-func NewArticleHandler(svc service.ArticleServcie, intrSvc service.InteractiveService, l logger.Logger) *ArticleHandler {
+func NewArticleHandler(svc service.ArticleService, intrSvc service.InteractiveService, l logger.Logger) *ArticleHandler {
 	return &ArticleHandler{
 		svc:     svc,
 		intrSvc: intrSvc,

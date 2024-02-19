@@ -20,7 +20,7 @@ import (
 func TestArticleHandler_Publish(t *testing.T) {
 	testcases := []struct {
 		name     string
-		mock     func(controller *gomock.Controller) service.ArticleServcie
+		mock     func(controller *gomock.Controller) service.ArticleService
 		reqBody  string
 		wantCode int
 		wantRes  Result
@@ -30,7 +30,7 @@ func TestArticleHandler_Publish(t *testing.T) {
 			reqBody: `
 				{"title":"我的标题","content":"我的内容"}
 				`,
-			mock: func(ctrl *gomock.Controller) service.ArticleServcie {
+			mock: func(ctrl *gomock.Controller) service.ArticleService {
 				artSvc := svcmocks.NewMockArticleServcie(ctrl)
 				artSvc.EXPECT().Publish(gomock.Any(), domain.Article{
 					Title:   "我的标题",

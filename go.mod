@@ -12,7 +12,7 @@ require (
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/cloopen/go-sms-sdk v0.0.0-20200702015230-7c5619f80c9e
 	github.com/dlclark/regexp2 v1.10.0
-	github.com/ecodeclub/ekit v0.0.8
+	github.com/ecodeclub/ekit v0.0.9-0.20240211145635-ea42c17ffeb0
 	github.com/gin-contrib/cors v1.5.0
 	github.com/gin-contrib/sessions v0.0.5
 	github.com/gin-gonic/gin v1.9.1
@@ -23,6 +23,7 @@ require (
 	github.com/google/wire v0.5.0
 	github.com/prometheus/client_golang v1.18.0
 	github.com/redis/go-redis/v9 v9.4.0
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.8.4
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.840
@@ -127,7 +128,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.23.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.5.0 // indirect
-	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
+	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/protobuf v1.32.0 // indirect
