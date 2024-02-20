@@ -2,6 +2,7 @@ package article
 
 import (
 	"context"
+	"time"
 	"webookpro/internal/domain"
 )
 
@@ -14,4 +15,5 @@ type ArticleDAO interface {
 	GetByAuthor(ctx context.Context, authorId int64, offset int, limit int) ([]Article, error)
 	GetById(ctx context.Context, id int64) (Article, error)
 	GetPubById(ctx context.Context, id int64) (PublishedArticle, error)
+	ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]PublishedArticle, error)
 }

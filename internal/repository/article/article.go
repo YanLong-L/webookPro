@@ -22,6 +22,7 @@ type ArticleRepository interface {
 	List(ctx context.Context, uid int64, offset int, limit int) ([]domain.Article, error)
 	GetById(ctx context.Context, artId int64) (domain.Article, error)
 	GetPublishedById(ctx *gin.Context, artId int64) (domain.Article, error)
+	ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]domain.Article, error)
 }
 
 type CachedArticleRepository struct {
@@ -42,6 +43,16 @@ func NewCachedArticleRepository(dao article.ArticleDAO, cache cache.ArticleCache
 		cache: cache,
 		l:     l,
 	}
+}
+
+func (r *CachedArticleRepository) ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]domain.Article, error) {
+	res, err := r.dao.ListPub(ctx, start, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+	return slice.Map(res, func(idx int, src article.PublishedArticle) domain.Article {
+		return r.entityPubtoDomain(src)
+	}), nil
 }
 
 // GetPublishedById 获取线上库文章详情
@@ -209,6 +220,20 @@ func (r *CachedArticleRepository) domainToEntity(art domain.Article) article.Art
 }
 
 func (repo *CachedArticleRepository) entitytoDomain(art article.Article) domain.Article {
+	return domain.Article{
+		Id:      art.Id,
+		Title:   art.Title,
+		Status:  domain.ArticleStatus(art.Status),
+		Content: art.Content,
+		Author: domain.Author{
+			Id: art.AuthorId,
+		},
+		Ctime: time.UnixMilli(art.Ctime),
+		Utime: time.UnixMilli(art.Utime),
+	}
+}
+
+func (repo *CachedArticleRepository) entityPubtoDomain(art article.PublishedArticle) domain.Article {
 	return domain.Article{
 		Id:      art.Id,
 		Title:   art.Title,

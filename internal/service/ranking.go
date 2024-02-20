@@ -7,6 +7,7 @@ import (
 	"math"
 	"time"
 	"webookpro/internal/domain"
+	"webookpro/internal/repository"
 )
 
 type RankingService interface {
@@ -18,20 +19,34 @@ type RankingService interface {
 type BatchRankingService struct {
 	artSvc    ArticleService
 	intrSvc   InteractiveService
+	repo      repository.RankingRepository
 	batchSize int
 	n         int
 	// scoreFunc 计算文章的热点分数，切不能返回负数
 	scoreFunc func(t time.Time, likeCnt int64) float64
 }
 
+func NewBatchRankingService(artSvc ArticleService, intrSvc InteractiveService) *BatchRankingService {
+	return &BatchRankingService{
+		artSvc:    artSvc,
+		intrSvc:   intrSvc,
+		batchSize: 100,
+		n:         100,
+		scoreFunc: func(t time.Time, likeCnt int64) float64 {
+			sec := time.Since(t).Seconds()
+			return float64(likeCnt-1) / math.Pow(float64(sec+2), 1.5)
+		},
+	}
+}
+
 func (svc *BatchRankingService) TopN(ctx context.Context) error {
+	// 计算topN数据
 	arts, err := svc.topN(ctx)
 	if err != nil {
 		return err
 	}
-	// 在这里缓存住 topn的数据
-	println(arts)
-	return nil
+	// 将topN数据缓存
+	return svc.repo.ReplaceTopN(ctx, arts)
 }
 
 func (svc *BatchRankingService) topN(ctx context.Context) ([]domain.Article, error) {
@@ -75,7 +90,7 @@ func (svc *BatchRankingService) topN(ctx context.Context) ([]domain.Article, err
 			intr := intrs[art.Id]
 			// 计算当前文章的热度得分
 			score := svc.scoreFunc(art.Utime, intr.LikeCnt)
-			// 尝试把这篇文章加入队列，如果队列已经满了会有err
+			// 先尝试把这篇文章加入队列，如果队列已经满了会有err
 			err := topN.Enqueue(Score{
 				art:   art,
 				score: score,
@@ -96,8 +111,10 @@ func (svc *BatchRankingService) topN(ctx context.Context) ([]domain.Article, err
 		}
 		// 此时，当前批已经处理完了
 		// 我怎么知道要不要进入下一批，我怎么知道还没有没有
-		if len(arts) < svc.batchSize {
+		if len(arts) < svc.batchSize ||
+			now.Sub(arts[len(arts)-1].Utime).Hours() > 7*24 {
 			// 如果我这一批都没取够，我肯定没有下一批了
+			// 或者我都取到7天之前的数据了，肯定也不用再取了
 			break
 		}
 		// 更新offset
@@ -113,16 +130,4 @@ func (svc *BatchRankingService) topN(ctx context.Context) ([]domain.Article, err
 		res[i] = val.art
 	}
 	return res, nil
-}
-
-func NewBatchRankingService(artSvc ArticleService, intrSvc InteractiveService) *BatchRankingService {
-	return &BatchRankingService{
-		artSvc:    artSvc,
-		intrSvc:   intrSvc,
-		batchSize: 100,
-		n:         100,
-		scoreFunc: func(t time.Time, likeCnt int64) float64 {
-			return float64(likeCnt-1) / math.Pow(float64(likeCnt+2), 1.5)
-		},
-	}
 }

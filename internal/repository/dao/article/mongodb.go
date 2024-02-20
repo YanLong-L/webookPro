@@ -60,6 +60,11 @@ func NewMongoDBArticleDAO(client *mongo.Client, db *mongo.Database, node *snowfl
 	}
 }
 
+func (m MongoDBArticleDAO) ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]PublishedArticle, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (m MongoDBArticleDAO) GetPubById(ctx context.Context, id int64) (PublishedArticle, error) {
 	//TODO implement me
 	panic("implement me")

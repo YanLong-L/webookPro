@@ -48,8 +48,7 @@ func NewArticleService(repo article.ArticleRepository,
 
 // ListPub 只会取7天内的数据
 func (s *articleService) ListPub(ctx context.Context, start time.Time, offset, limit int) ([]domain.Article, error) {
-	//TODO implement me
-	panic("implement me")
+	return s.repo.ListPub(ctx, start, offset, limit)
 }
 
 // GetPublishedById 获取线上库帖子详情

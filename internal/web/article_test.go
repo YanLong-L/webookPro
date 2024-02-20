@@ -31,7 +31,7 @@ func TestArticleHandler_Publish(t *testing.T) {
 				{"title":"我的标题","content":"我的内容"}
 				`,
 			mock: func(ctrl *gomock.Controller) service.ArticleService {
-				artSvc := svcmocks.NewMockArticleServcie(ctrl)
+				artSvc := svcmocks.NewMockArticleService(ctrl)
 				artSvc.EXPECT().Publish(gomock.Any(), domain.Article{
 					Title:   "我的标题",
 					Content: "我的内容",
@@ -62,7 +62,7 @@ func TestArticleHandler_Publish(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			artSvc := tc.mock(ctrl)
-			artHdl := NewArticleHandler(artSvc, &logger.NopLogger{})
+			artHdl := NewArticleHandler(artSvc, nil, &logger.NopLogger{})
 			artHdl.RegisterRoutes(server)
 
 			recorder := httptest.NewRecorder()
