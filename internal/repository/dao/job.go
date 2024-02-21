@@ -31,7 +31,7 @@ func (g *GORMJobDAO) Preempt(ctx context.Context, refreshInterval time.Duration)
 		var j Job
 		err := db.WithContext(ctx).
 			Where("status = ? AND next_time <= ?", jobStatusWaiting, now).
-			Or("utime <= ", time.Now().Add(refreshInterval*3)). // 3个间隔都没续约，我认为你续约失败，是可以抢占的
+			Or("utime <= ", time.Now().Add(-refreshInterval*3)). // 3个间隔都没续约，我认为你续约失败，是可以抢占的
 			First(&j).Error
 		if err != nil {
 			// 说明没任务执行，直接退出

@@ -2,8 +2,11 @@ package job
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"golang.org/x/sync/semaphore"
+	"net/http"
 	"time"
 	"webookpro/internal/domain"
 	"webookpro/internal/service"
@@ -18,6 +21,36 @@ import (
 type Executor interface {
 	Name() string                                 // 任务执行器的名字
 	Exec(ctx context.Context, j domain.Job) error // 真正去执行一个任务
+}
+
+// HttpExecutor
+type HttpExecutor struct{}
+
+func (h HttpExecutor) Name() string {
+	return "http"
+}
+
+func (h HttpExecutor) Exec(ctx context.Context, j domain.Job) error {
+	type Config struct {
+		Url    string
+		Method string
+	}
+	// 解析这个job的配置
+	var cfg Config
+	err := json.Unmarshal([]byte(j.Cfg), &cfg)
+	if err != nil {
+		return err
+	}
+	// 发起http调用
+	req, err := http.NewRequest(cfg.Method, cfg.Url, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("执行失败")
+	}
+	return nil
 }
 
 // LocalFuncExecutor 我这个执行器就是一个本地方法
@@ -78,9 +111,9 @@ func (s *Scheduler) Schedule(ctx context.Context) error {
 			return err
 		}
 		// 拿到了， 直接开始抢占任务
-		dbCtx, cancal := context.WithTimeout(ctx, time.Second)
+		dbCtx, cancel := context.WithTimeout(ctx, time.Second)
 		j, err := s.svc.Preempt(dbCtx)
-		cancal()
+		cancel()
 		if err != nil {
 			s.l.Error("抢占任务失败", logger.Error(err))
 		}
