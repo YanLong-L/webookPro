@@ -27,7 +27,7 @@ func InitWebServer() *App {
 	jwtHandler := jwt.NewRedisJWTHandler(cmdable)
 	logger := ioc.InitLogger()
 	v := ioc.InitMiddlewares(limiter, jwtHandler, logger)
-	db := ioc.InitDB()
+	db := ioc.InitDB(logger)
 	userDAO := dao.NewGormUserDAO(db)
 	userCache := cache.NewRedisUserCache(cmdable)
 	userRepository := repository.NewCachedUserRepository(userDAO, userCache)
@@ -45,18 +45,26 @@ func InitWebServer() *App {
 	client := ioc.InitKafka()
 	syncProducer := ioc.NewSyncProducer(client)
 	producer := article3.NewKafkaProducer(syncProducer)
-	articleServcie := service.NewArticleService(articleRepository, producer, logger)
+	articleService := service.NewArticleService(articleRepository, producer, logger)
 	interactiveDAO := dao.NewGORMInteractiveDAO(db)
 	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
 	interactiveRepository := repository.NewCachedIntrRepository(interactiveDAO, interactiveCache, logger)
 	interactiveService := service.NewInteractiveService(interactiveRepository, logger)
-	articleHandler := web.NewArticleHandler(articleServcie, interactiveService, logger)
+	articleHandler := web.NewArticleHandler(articleService, interactiveService, logger)
 	engine := ioc.InitWebServer(v, userHandler, oAuth2WechatHandler, articleHandler)
 	interactiveReadEventBatchConsumer := article3.NewInteractiveReadEventBatchConsumer(client, interactiveRepository, logger)
 	v2 := ioc.NewConsumers(interactiveReadEventBatchConsumer)
+	rankingRedisCache := cache.NewRedisRankingCache(cmdable)
+	rankingLocalCache := cache.NewRankingLocalCache()
+	rankingRepository := repository.NewCachedRankingRepository(rankingRedisCache, rankingLocalCache)
+	rankingService := service.NewBatchRankingService(articleService, interactiveService, rankingRepository)
+	rlockClient := ioc.InitRLockClient(cmdable)
+	rankingJob := ioc.InitRankingJob(rankingService, rlockClient, logger)
+	cron := ioc.InitJobs(logger, rankingJob)
 	app := &App{
 		web:       engine,
 		consumers: v2,
+		cron:      cron,
 	}
 	return app
 }

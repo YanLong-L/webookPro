@@ -8,7 +8,7 @@ import (
 
 type RankingRepository interface {
 	ReplaceTopN(ctx context.Context, arts []domain.Article) error
-	GetTopN(ctx context.Context) (domain.Article, error)
+	GetTopN(ctx context.Context) ([]domain.Article, error)
 }
 
 type CachedRankingRepository struct {
@@ -17,7 +17,7 @@ type CachedRankingRepository struct {
 	local *cache.RankingLocalCache
 }
 
-func NewCachedRankingRepository(redis *cache.RankingRedisCache, local *cache.RankingLocalCache) *CachedRankingRepository {
+func NewCachedRankingRepository(redis *cache.RankingRedisCache, local *cache.RankingLocalCache) RankingRepository {
 	return &CachedRankingRepository{redis: redis, local: local}
 }
 

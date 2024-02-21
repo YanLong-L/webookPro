@@ -18,7 +18,7 @@ type RankingRedisCache struct {
 	key    string
 }
 
-func NewRedisRankingCache(client redis.Cmdable) RankingCache {
+func NewRedisRankingCache(client redis.Cmdable) *RankingRedisCache {
 	return &RankingRedisCache{client: client, key: "ranking"}
 }
 

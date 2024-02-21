@@ -19,8 +19,10 @@ import (
 func InitWebServer() *App {
 	wire.Build(
 		// 第三方依赖
-		ioc.InitDB, ioc.InitRDB, ioc.InitLogger,
+		ioc.InitDB, ioc.InitRDB, ioc.InitRLockClient, ioc.InitLogger,
 		ioc.InitKafka, ioc.NewConsumers, ioc.NewSyncProducer,
+		// 初始化job
+		ioc.InitJobs, ioc.InitRankingJob,
 		// consumers
 		article.NewInteractiveReadEventBatchConsumer,
 		// producers
@@ -34,16 +36,20 @@ func InitWebServer() *App {
 		cache.NewRedisUserCache,
 		cache.NewRedisInteractiveCache,
 		cache.NewRedisArticleCache,
+		cache.NewRedisRankingCache,
+		cache.NewRankingLocalCache,
 		// repo层
 		repository.NewCachedUserRepository,
 		repository.NewCachedCodeRepository,
 		repository.NewCachedIntrRepository,
+		repository.NewCachedRankingRepository,
 		article3.NewCachedArticleRepository,
 		// service 层
 		service.NewUserService,
 		service.NewSMSCodeService,
 		service.NewArticleService,
 		service.NewInteractiveService,
+		service.NewBatchRankingService,
 		ioc.InitSMSService, ioc.InitWechatService,
 		// handlers
 		web.NewUserHandler,

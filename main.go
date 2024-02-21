@@ -21,6 +21,7 @@ func main() {
 	closeFunc := ioc.InitOTEL()
 	// 初始化 app
 	app := InitWebServer()
+
 	// 开启所有消费者
 	for _, c := range app.consumers {
 		err := c.Start()
@@ -28,6 +29,9 @@ func main() {
 			panic(err)
 		}
 	}
+	// 开启所有定时任务
+	app.cron.Start()
+
 	// 开启web服务
 	server := app.web
 	err := server.Run(":8080")
@@ -39,6 +43,14 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	closeFunc(ctx)
+
+	ctx = app.cron.Stop()
+	// 这边可以考虑超时强制退出，防止有些任务，执行特别长的时间
+	tm := time.NewTimer(time.Minute * 10)
+	select {
+	case <-tm.C:
+	case <-ctx.Done():
+	}
 
 }
 
