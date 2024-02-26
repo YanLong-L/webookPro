@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"github.com/ecodeclub/ekit/slice"
 	"webookpro/internal/domain"
 	"webookpro/internal/repository/cache"
 	"webookpro/internal/repository/dao"
@@ -20,6 +21,7 @@ type InteractiveRepository interface {
 	Collected(ctx context.Context, biz string, id int64, uid int64) (bool, error)
 	BatchIncrReadCnt(ctx context.Context, bizs []string, ids []int64) error
 	AddRecord(ctx context.Context, aid int64, uid int64) error
+	GetByIds(ctx context.Context, biz string, ids []int64) ([]domain.Interactive, error)
 }
 
 type CachedIntrRepository struct {
@@ -34,6 +36,17 @@ func NewCachedIntrRepository(dao dao.InteractiveDAO, cache cache.InteractiveCach
 		cache: cache,
 		l:     l,
 	}
+}
+
+func (c *CachedIntrRepository) GetByIds(ctx context.Context, biz string, ids []int64) ([]domain.Interactive, error) {
+	vals, err := c.dao.GetByIds(ctx, biz, ids)
+	if err != nil {
+		return nil, err
+	}
+	return slice.Map[dao.Interactive, domain.Interactive](vals,
+		func(idx int, src dao.Interactive) domain.Interactive {
+			return c.toDomain(src)
+		}), nil
 }
 
 func (c *CachedIntrRepository) AddRecord(ctx context.Context, aid int64, uid int64) error {

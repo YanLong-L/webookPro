@@ -34,8 +34,15 @@ func NewInteractiveService(repo repository.InteractiveRepository, l logger.Logge
 }
 
 func (i *interactiveService) GetByIds(ctx context.Context, biz string, bizIds []int64) (map[int64]domain.Interactive, error) {
-	//TODO implement me
-	panic("implement me")
+	intrs, err := i.repo.GetByIds(ctx, biz, bizIds)
+	if err != nil {
+		return nil, err
+	}
+	res := make(map[int64]domain.Interactive, len(intrs))
+	for _, intr := range intrs {
+		res[intr.BizId] = intr
+	}
+	return res, nil
 }
 
 func (i *interactiveService) IncrReadCnt(ctx context.Context, biz string, bizId int64) error {

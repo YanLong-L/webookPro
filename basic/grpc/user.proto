@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+option go_package = "webookpro/basic/grpc";
+
+message User {
+  int64 id = 1;
+  string name = 2;
+  map<string, string> attributes = 3;
+  optional int32 age = 7;
+  Address add = 9;
+  oneof contacts {
+    string email = 10;
+    string phone = 11;
+  }
+  Gender gender = 12;
+}
+
+message Address {
+
+}
+
+enum Gender {
+  Unknown = 0;
+  Male = 1;
+  Female = 2;
+}
+
+service UserService {
+  rpc GetById(GetByIdRequest) returns (GetByIdResponse);
+}
+
+message GetByIdRequest {
+  int64 id = 1;
+}
+
+message GetByIdResponse {
+  User user = 1;
+}
