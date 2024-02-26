@@ -20,3 +20,6 @@ mock:
 	@mockgen -source=C:\Users\liyl54\GolandProjects\webookPro\internal\repository\article\article_reader.go -package=artrepomocks -destination=C:\Users\liyl54\GolandProjects\webookPro\internal\repository\article\mocks\article_reader.mock.go
 
 
+.PHONY: grpc
+grpc:
+	@buf generate api/proto
