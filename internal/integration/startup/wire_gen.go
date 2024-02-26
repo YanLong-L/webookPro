@@ -9,6 +9,10 @@ package startup
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
+	repository2 "webookpro/interactive/repository"
+	cache2 "webookpro/interactive/repository/cache"
+	dao3 "webookpro/interactive/repository/dao"
+	service2 "webookpro/interactive/service"
 	"webookpro/internal/ioc"
 	"webookpro/internal/repository"
 	article2 "webookpro/internal/repository/article"
@@ -51,22 +55,22 @@ func InitArticleHandler(dao2 article.ArticleDAO) *web.ArticleHandler {
 	articleRepository := article2.NewCachedArticleRepository(dao2, articleCache, logger)
 	articleServcie := service.NewArticleService(articleRepository)
 	db := InitDB()
-	interactiveDAO := dao.NewGORMInteractiveDAO(db)
-	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
-	interactiveRepository := repository.NewCachedIntrRepository(interactiveDAO, interactiveCache, logger)
-	interactiveService := service.NewInteractiveService(interactiveRepository, logger)
+	interactiveDAO := dao3.NewGORMInteractiveDAO(db)
+	interactiveCache := cache2.NewRedisInteractiveCache(cmdable)
+	interactiveRepository := repository2.NewCachedIntrRepository(interactiveDAO, interactiveCache, logger)
+	interactiveService := service2.NewInteractiveService(interactiveRepository, logger)
 	articleHandler := web.NewArticleHandler(articleServcie, interactiveService, logger)
 	return articleHandler
 }
 
-func InitInteractiveService() service.InteractiveService {
+func InitInteractiveService() service2.InteractiveService {
 	db := InitDB()
-	interactiveDAO := dao.NewGORMInteractiveDAO(db)
+	interactiveDAO := dao3.NewGORMInteractiveDAO(db)
 	cmdable := InitRDB()
-	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
+	interactiveCache := cache2.NewRedisInteractiveCache(cmdable)
 	logger := ioc.InitLogger()
-	interactiveRepository := repository.NewCachedIntrRepository(interactiveDAO, interactiveCache, logger)
-	interactiveService := service.NewInteractiveService(interactiveRepository, logger)
+	interactiveRepository := repository2.NewCachedIntrRepository(interactiveDAO, interactiveCache, logger)
+	interactiveService := service2.NewInteractiveService(interactiveRepository, logger)
 	return interactiveService
 }
 
@@ -74,4 +78,4 @@ func InitInteractiveService() service.InteractiveService {
 
 var thirdProvider = wire.NewSet(InitDB, InitRDB, ioc.InitLogger)
 
-var interactiveSvcProvider = wire.NewSet(service.NewInteractiveService, repository.NewCachedIntrRepository, dao.NewGORMInteractiveDAO, cache.NewRedisInteractiveCache)
+var interactiveSvcProvider = wire.NewSet(service2.NewInteractiveService, repository2.NewCachedIntrRepository, dao3.NewGORMInteractiveDAO, cache2.NewRedisInteractiveCache)

@@ -1,4 +1,4 @@
-package integration
+package intergration
 
 import (
 	"github.com/redis/go-redis/v9"
@@ -8,8 +8,8 @@ import (
 	"gorm.io/gorm"
 	"testing"
 	"time"
-	"webookpro/internal/integration/startup"
-	"webookpro/internal/repository/dao"
+	"webookpro/interactive/intergration/startup"
+	"webookpro/interactive/repository/dao"
 )
 
 type InteractiveTestSuite struct {
@@ -19,8 +19,8 @@ type InteractiveTestSuite struct {
 }
 
 func (s *InteractiveTestSuite) SetupSuite() {
-	s.db = startup.InitDB()
-	s.rdb = startup.InitRDB()
+	s.db = startup.InitTestDB()
+	s.rdb = startup.InitRedis()
 }
 
 func (s *InteractiveTestSuite) TearDownTest() {

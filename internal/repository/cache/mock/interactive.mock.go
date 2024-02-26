@@ -11,10 +11,9 @@ package cachemocks
 
 import (
 	context "context"
-	reflect "reflect"
-	domain "webookpro/internal/domain"
-
 	gomock "go.uber.org/mock/gomock"
+	reflect "reflect"
+	"webookpro/interactive/domain"
 )
 
 // MockInteractiveCache is a mock of InteractiveCache interface.

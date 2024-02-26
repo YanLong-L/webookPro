@@ -4,6 +4,11 @@ package main
 
 import (
 	"github.com/google/wire"
+	"webookpro/interactive/events"
+	repository2 "webookpro/interactive/repository"
+	cache2 "webookpro/interactive/repository/cache"
+	dao2 "webookpro/interactive/repository/dao"
+	service2 "webookpro/interactive/service"
 	"webookpro/internal/events/article"
 	"webookpro/internal/ioc"
 	"webookpro/internal/repository"
@@ -24,31 +29,31 @@ func InitWebServer() *App {
 		// 初始化job
 		ioc.InitJobs, ioc.InitRankingJob,
 		// consumers
-		article.NewInteractiveReadEventBatchConsumer,
+		events.NewInteractiveReadEventBatchConsumer,
 		// producers
 		article.NewKafkaProducer,
 		// dao 层
 		dao.NewGormUserDAO,
-		dao.NewGORMInteractiveDAO,
+		dao2.NewGORMInteractiveDAO,
 		article2.NewGORMArticleDAO,
 		// cache 层
 		cache.NewRedisCodeCache,
 		cache.NewRedisUserCache,
-		cache.NewRedisInteractiveCache,
+		cache2.NewRedisInteractiveCache,
 		cache.NewRedisArticleCache,
 		cache.NewRedisRankingCache,
 		cache.NewRankingLocalCache,
 		// repo层
 		repository.NewCachedUserRepository,
 		repository.NewCachedCodeRepository,
-		repository.NewCachedIntrRepository,
+		repository2.NewCachedIntrRepository,
 		repository.NewCachedRankingRepository,
 		article3.NewCachedArticleRepository,
 		// service 层
 		service.NewUserService,
 		service.NewSMSCodeService,
 		service.NewArticleService,
-		service.NewInteractiveService,
+		service2.NewInteractiveService,
 		service.NewBatchRankingService,
 		ioc.InitSMSService, ioc.InitWechatService,
 		// handlers

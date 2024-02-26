@@ -7,7 +7,6 @@ import (
 	"go.uber.org/zap"
 	"net/http"
 	"time"
-	"webookpro/internal/ioc"
 )
 
 func main() {
@@ -15,10 +14,10 @@ func main() {
 	InitViper()
 	// 初始化logger
 	InitLogger()
-	// 初始化Prometheus
-	InitPrometheus()
-	// 初始化opentelemetry
-	closeFunc := ioc.InitOTEL()
+	//// 初始化Prometheus
+	//InitPrometheus()
+	//// 初始化opentelemetry
+	//closeFunc := ioc.InitOTEL()
 	// 初始化 app
 	app := InitWebServer()
 
@@ -42,7 +41,7 @@ func main() {
 	// 一分钟内shutdown trace provider
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
-	closeFunc(ctx)
+	//closeFunc(ctx)
 
 	ctx = app.cron.Stop()
 	// 这边可以考虑超时强制退出，防止有些任务，执行特别长的时间

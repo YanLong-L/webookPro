@@ -3,9 +3,9 @@ package repository
 import (
 	"context"
 	"github.com/ecodeclub/ekit/slice"
-	"webookpro/internal/domain"
-	"webookpro/internal/repository/cache"
-	"webookpro/internal/repository/dao"
+	"webookpro/interactive/domain"
+	"webookpro/interactive/repository/cache"
+	"webookpro/interactive/repository/dao"
 	"webookpro/pkg/logger"
 )
 

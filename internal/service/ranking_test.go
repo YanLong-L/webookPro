@@ -6,6 +6,8 @@ import (
 	"go.uber.org/mock/gomock"
 	"testing"
 	"time"
+	domain2 "webookpro/interactive/domain"
+	"webookpro/interactive/service"
 	"webookpro/internal/domain"
 	svcmocks "webookpro/internal/service/mock"
 )
@@ -14,13 +16,13 @@ func TestRankingTopN(t *testing.T) {
 	now := time.Now()
 	testcases := []struct {
 		name     string
-		mock     func(ctrl *gomock.Controller) (ArticleService, InteractiveService)
+		mock     func(ctrl *gomock.Controller) (ArticleService, service.InteractiveService)
 		wantErr  error
 		wantArts []domain.Article
 	}{
 		{
 			name: "计算成功",
-			mock: func(ctrl *gomock.Controller) (ArticleService, InteractiveService) {
+			mock: func(ctrl *gomock.Controller) (ArticleService, service.InteractiveService) {
 				artSvc := svcmocks.NewMockArticleService(ctrl)
 				artSvc.EXPECT().ListPub(gomock.Any(), gomock.Any(), 0, 3).
 					Return([]domain.Article{
@@ -33,14 +35,14 @@ func TestRankingTopN(t *testing.T) {
 				intrSvc := svcmocks.NewMockInteractiveService(ctrl)
 				intrSvc.EXPECT().GetByIds(gomock.Any(), "article",
 					[]int64{1, 2, 3}).
-					Return(map[int64]domain.Interactive{
+					Return(map[int64]domain2.Interactive{
 						1: {BizId: 1, LikeCnt: 1},
 						2: {BizId: 2, LikeCnt: 2},
 						3: {BizId: 3, LikeCnt: 3},
 					}, nil)
 				intrSvc.EXPECT().GetByIds(gomock.Any(),
 					"article", []int64{}).
-					Return(map[int64]domain.Interactive{}, nil)
+					Return(map[int64]domain2.Interactive{}, nil)
 				return artSvc, intrSvc
 
 			},
@@ -57,7 +59,7 @@ func TestRankingTopN(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			artSvc, intrSvc := tc.mock(ctrl)
-			svc := NewBatchRankingService(artSvc, intrSvc)
+			svc := NewBatchRankingService(artSvc, intrSvc, nil).(*BatchRankingService)
 			svc.n = 3
 			svc.batchSize = 3
 			svc.scoreFunc = func(t time.Time, likeCnt int64) float64 {

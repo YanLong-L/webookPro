@@ -5,6 +5,10 @@ package startup
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/wire"
+	repository2 "webookpro/interactive/repository"
+	cache2 "webookpro/interactive/repository/cache"
+	dao2 "webookpro/interactive/repository/dao"
+	service2 "webookpro/interactive/service"
 	"webookpro/internal/ioc"
 	"webookpro/internal/repository"
 	"webookpro/internal/repository/article"
@@ -19,10 +23,10 @@ import (
 var thirdProvider = wire.NewSet(InitDB, InitRDB, ioc.InitLogger)
 
 var interactiveSvcProvider = wire.NewSet(
-	service.NewInteractiveService,
-	repository.NewCachedIntrRepository,
-	dao.NewGORMInteractiveDAO,
-	cache.NewRedisInteractiveCache,
+	service2.NewInteractiveService,
+	repository2.NewCachedIntrRepository,
+	dao2.NewGORMInteractiveDAO,
+	cache2.NewRedisInteractiveCache,
 )
 
 func InitWebServer() *gin.Engine {
@@ -59,7 +63,7 @@ func InitArticleHandler(dao article2.ArticleDAO) *web.ArticleHandler {
 	return &web.ArticleHandler{}
 }
 
-func InitInteractiveService() service.InteractiveService {
+func InitInteractiveService() service2.InteractiveService {
 	wire.Build(thirdProvider, interactiveSvcProvider)
-	return service.NewInteractiveService(nil, nil)
+	return service2.NewInteractiveService(nil, nil)
 }

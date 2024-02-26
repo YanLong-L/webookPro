@@ -11,10 +11,9 @@ package repomocks
 
 import (
 	context "context"
-	reflect "reflect"
-	domain "webookpro/internal/domain"
-
 	gomock "go.uber.org/mock/gomock"
+	reflect "reflect"
+	"webookpro/interactive/domain"
 )
 
 // MockInteractiveRepository is a mock of InteractiveRepository interface.

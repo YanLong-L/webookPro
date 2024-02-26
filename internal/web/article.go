@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	domain2 "webookpro/interactive/domain"
+	service2 "webookpro/interactive/service"
 	"webookpro/internal/domain"
 	"webookpro/internal/service"
 	ijwt "webookpro/internal/web/jwt"
@@ -23,12 +25,12 @@ var _ handler = (*ArticleHandler)(nil)
 
 type ArticleHandler struct {
 	svc     service.ArticleService
-	intrSvc service.InteractiveService
+	intrSvc service2.InteractiveService
 	l       logger.Logger
 	biz     string
 }
 
-func NewArticleHandler(svc service.ArticleService, intrSvc service.InteractiveService, l logger.Logger) *ArticleHandler {
+func NewArticleHandler(svc service.ArticleService, intrSvc service2.InteractiveService, l logger.Logger) *ArticleHandler {
 	return &ArticleHandler{
 		svc:     svc,
 		intrSvc: intrSvc,
@@ -84,7 +86,7 @@ func (u *ArticleHandler) PubDetail(ctx *gin.Context) {
 	var (
 		eg   errgroup.Group
 		art  domain.Article
-		intr domain.Interactive
+		intr domain2.Interactive
 	)
 	uc := ctx.MustGet("users").(ijwt.UserClaims)
 	eg.Go(func() error {
