@@ -14,9 +14,9 @@ func main() {
 	InitViper()
 	// 初始化logger
 	InitLogger()
-	//// 初始化Prometheus
+	// 初始化Prometheus
 	//InitPrometheus()
-	//// 初始化opentelemetry
+	// 初始化opentelemetry
 	//closeFunc := ioc.InitOTEL()
 	// 初始化 app
 	app := InitWebServer()
@@ -78,7 +78,7 @@ func InitLogger() {
 func InitPrometheus() {
 	go func() {
 		http.Handle("/metrics", promhttp.Handler())
-		err := http.ListenAndServe(":8080", nil)
+		err := http.ListenAndServe(":8079", nil)
 		if err != nil {
 			panic(err)
 		}

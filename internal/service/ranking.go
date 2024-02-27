@@ -2,11 +2,12 @@ package service
 
 import (
 	"context"
+	"errors"
 	"github.com/ecodeclub/ekit/queue"
 	"github.com/ecodeclub/ekit/slice"
 	"math"
 	"time"
-	"webookpro/interactive/service"
+	intrv1 "webookpro/api/proto/gen/intr/v1"
 	"webookpro/internal/domain"
 	"webookpro/internal/repository"
 )
@@ -19,7 +20,7 @@ type RankingService interface {
 
 type BatchRankingService struct {
 	artSvc    ArticleService
-	intrSvc   service.InteractiveService
+	intrSvc   intrv1.InteractiveServiceClient
 	repo      repository.RankingRepository
 	batchSize int
 	n         int
@@ -27,7 +28,7 @@ type BatchRankingService struct {
 	scoreFunc func(t time.Time, likeCnt int64) float64
 }
 
-func NewBatchRankingService(artSvc ArticleService, intrSvc service.InteractiveService,
+func NewBatchRankingService(artSvc ArticleService, intrSvc intrv1.InteractiveServiceClient,
 	repo repository.RankingRepository) RankingService {
 	return &BatchRankingService{
 		artSvc:    artSvc,
@@ -83,14 +84,19 @@ func (svc *BatchRankingService) topN(ctx context.Context) ([]domain.Article, err
 			return src.Id
 		})
 		// 获取这批文章的点赞数据
-		intrs, err := svc.intrSvc.GetByIds(ctx, "article", ids)
+		intrs, err := svc.intrSvc.GetByIds(ctx, &intrv1.GetByIdsRequest{
+			Biz: "article", Ids: ids,
+		})
 		if err != nil {
 			return nil, err
+		}
+		if len(intrs.Intrs) == 0 {
+			return nil, errors.New("没有数据")
 		}
 		// 将这批文章加入进优先级队列
 		for _, art := range arts {
 			// 拿到当前文章的互动信息（点赞，收藏。。）
-			intr := intrs[art.Id]
+			intr := intrs.Intrs[art.Id]
 			// 计算当前文章的热度得分
 			score := svc.scoreFunc(art.Utime, intr.LikeCnt)
 			// 先尝试把这篇文章加入队列，如果队列已经满了会有err

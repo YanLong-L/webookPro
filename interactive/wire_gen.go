@@ -4,11 +4,13 @@
 //go:build !wireinject
 // +build !wireinject
 
-package startup
+package interactive
 
 import (
 	"github.com/google/wire"
+	"webookpro/interactive/events"
 	"webookpro/interactive/grpc"
+	"webookpro/interactive/ioc"
 	"webookpro/interactive/repository"
 	"webookpro/interactive/repository/cache"
 	"webookpro/interactive/repository/dao"
@@ -17,32 +19,28 @@ import (
 
 // Injectors from wire.go:
 
-func InitInteractiveService() service.InteractiveService {
-	gormDB := InitTestDB()
-	interactiveDAO := dao.NewGORMInteractiveDAO(gormDB)
-	cmdable := InitRedis()
+func InitAPP() *App {
+	logger := ioc.InitLogger()
+	db := ioc.InitDB(logger)
+	interactiveDAO := dao.NewGORMInteractiveDAO(db)
+	cmdable := ioc.InitRedis()
 	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
-	logger := InitLog()
-	interactiveRepository := repository.NewCachedIntrRepository(interactiveDAO, interactiveCache, logger)
-	interactiveService := service.NewInteractiveService(interactiveRepository, logger)
-	return interactiveService
-}
-
-func InitInteractiveGRPCServer() *grpc.InteractiveServiceServer {
-	gormDB := InitTestDB()
-	interactiveDAO := dao.NewGORMInteractiveDAO(gormDB)
-	cmdable := InitRedis()
-	interactiveCache := cache.NewRedisInteractiveCache(cmdable)
-	logger := InitLog()
 	interactiveRepository := repository.NewCachedIntrRepository(interactiveDAO, interactiveCache, logger)
 	interactiveService := service.NewInteractiveService(interactiveRepository, logger)
 	interactiveServiceServer := grpc.NewInteractiveServiceServer(interactiveService)
-	return interactiveServiceServer
+	server := ioc.InitGRPCxServer(interactiveServiceServer)
+	client := ioc.InitKafka()
+	interactiveReadEventConsumer := events.NewInteractiveReadEventConsumer(client, logger, interactiveRepository)
+	v := ioc.NewConsumers(interactiveReadEventConsumer)
+	app := &App{
+		server:    server,
+		consumers: v,
+	}
+	return app
 }
 
 // wire.go:
 
-var thirdProvider = wire.NewSet(InitRedis,
-	InitTestDB, InitLog)
+var thirdPartySet = wire.NewSet(ioc.InitDB, ioc.InitLogger, ioc.InitKafka, ioc.InitRedis)
 
 var interactiveSvcProvider = wire.NewSet(service.NewInteractiveService, repository.NewCachedIntrRepository, dao.NewGORMInteractiveDAO, cache.NewRedisInteractiveCache)

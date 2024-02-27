@@ -8,8 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-	domain2 "webookpro/interactive/domain"
-	service2 "webookpro/interactive/service"
+	intrv1 "webookpro/api/proto/gen/intr/v1"
 	"webookpro/internal/domain"
 	"webookpro/internal/service"
 	ijwt "webookpro/internal/web/jwt"
@@ -25,12 +24,12 @@ var _ handler = (*ArticleHandler)(nil)
 
 type ArticleHandler struct {
 	svc     service.ArticleService
-	intrSvc service2.InteractiveService
+	intrSvc intrv1.InteractiveServiceClient
 	l       logger.Logger
 	biz     string
 }
 
-func NewArticleHandler(svc service.ArticleService, intrSvc service2.InteractiveService, l logger.Logger) *ArticleHandler {
+func NewArticleHandler(svc service.ArticleService, intrSvc intrv1.InteractiveServiceClient, l logger.Logger) *ArticleHandler {
 	return &ArticleHandler{
 		svc:     svc,
 		intrSvc: intrSvc,
@@ -57,9 +56,13 @@ func (u *ArticleHandler) RegisterRoutes(server *gin.Engine) {
 func (u *ArticleHandler) Like(ctx *gin.Context, req LikeReq, uc ijwt.UserClaims) (ginx.Result, error) {
 	var err error
 	if req.Like {
-		err = u.intrSvc.Like(ctx, u.biz, req.Id, uc.Uid)
+		_, err = u.intrSvc.Like(ctx, &intrv1.LikeRequest{
+			Biz: u.biz, BizId: req.Id, Uid: uc.Uid,
+		})
 	} else {
-		err = u.intrSvc.CancelLike(ctx, u.biz, req.Id, uc.Uid)
+		_, err = u.intrSvc.CancelLike(ctx, &intrv1.CancelLikeRequest{
+			Biz: u.biz, BizId: req.Id, Uid: uc.Uid,
+		})
 	}
 	if err != nil {
 		return ginx.Result{
@@ -84,20 +87,21 @@ func (u *ArticleHandler) PubDetail(ctx *gin.Context) {
 	}
 
 	var (
-		eg   errgroup.Group
-		art  domain.Article
-		intr domain2.Interactive
+		eg  errgroup.Group
+		art domain.Article
 	)
-	uc := ctx.MustGet("users").(ijwt.UserClaims)
+	uc := ctx.MustGet("claims").(ijwt.UserClaims)
 	eg.Go(func() error {
 		art, err = u.svc.GetPublishedById(ctx, id, uc.Uid)
 		return err
 	})
+	var getResp *intrv1.GetResponse
 	eg.Go(func() error {
 		// 在这里要获取文章的互动信息
-		uc := ctx.MustGet("claims").(ijwt.UserClaims)
 		// 这个地方可以容忍错误
-		intr, err = u.intrSvc.Get(ctx, u.biz, id, uc.Uid)
+		getResp, err = u.intrSvc.Get(ctx, &intrv1.GetRequest{
+			Biz: u.biz, BizId: id, Uid: uc.Uid,
+		})
 		return err
 	})
 	// 在这儿等，要保证前面两个
@@ -113,13 +117,16 @@ func (u *ArticleHandler) PubDetail(ctx *gin.Context) {
 	// 加载完详情数据后，这里要阅读数 + 1
 	go func() {
 		// 开一个goroutine 异步去执行
-		er := u.intrSvc.IncrReadCnt(ctx, u.biz, art.Id)
+		_, er := u.intrSvc.IncrReadCnt(ctx, &intrv1.IncrReadCntRequest{
+			Biz: u.biz, BizId: art.Id,
+		})
 		if er != nil {
 			u.l.Error("增加阅读计数失败",
 				logger.Int64("artId", art.Id),
 				logger.Error(er))
 		}
 	}()
+	intr := getResp.Intr
 	ctx.JSON(http.StatusOK, Result{
 		Data: ArticleVO{
 			Id:         art.Id,

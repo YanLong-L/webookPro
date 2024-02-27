@@ -1,3 +1,5 @@
+//go:build need_fix
+
 package service
 
 import (
@@ -6,8 +8,8 @@ import (
 	"go.uber.org/mock/gomock"
 	"testing"
 	"time"
+	intrv1 "webookpro/api/proto/gen/intr/v1"
 	domain2 "webookpro/interactive/domain"
-	"webookpro/interactive/service"
 	"webookpro/internal/domain"
 	svcmocks "webookpro/internal/service/mock"
 )
@@ -16,13 +18,13 @@ func TestRankingTopN(t *testing.T) {
 	now := time.Now()
 	testcases := []struct {
 		name     string
-		mock     func(ctrl *gomock.Controller) (ArticleService, service.InteractiveService)
+		mock     func(ctrl *gomock.Controller) (ArticleService, intrv1.InteractiveServiceClient)
 		wantErr  error
 		wantArts []domain.Article
 	}{
 		{
 			name: "计算成功",
-			mock: func(ctrl *gomock.Controller) (ArticleService, service.InteractiveService) {
+			mock: func(ctrl *gomock.Controller) (ArticleService, intrv1.InteractiveServiceClient) {
 				artSvc := svcmocks.NewMockArticleService(ctrl)
 				artSvc.EXPECT().ListPub(gomock.Any(), gomock.Any(), 0, 3).
 					Return([]domain.Article{

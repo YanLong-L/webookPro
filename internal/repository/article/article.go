@@ -37,11 +37,15 @@ type CachedArticleRepository struct {
 	db        *gorm.DB
 }
 
-func NewCachedArticleRepository(dao article.ArticleDAO, cache cache.ArticleCache, l logger.Logger) ArticleRepository {
+func NewCachedArticleRepository(dao article.ArticleDAO,
+	cache cache.ArticleCache,
+	userRepo repository.UserRepository,
+	l logger.Logger) ArticleRepository {
 	return &CachedArticleRepository{
-		dao:   dao,
-		cache: cache,
-		l:     l,
+		dao:      dao,
+		cache:    cache,
+		userRepo: userRepo,
+		l:        l,
 	}
 }
 

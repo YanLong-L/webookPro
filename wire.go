@@ -30,6 +30,8 @@ func InitWebServer() *App {
 		ioc.InitJobs, ioc.InitRankingJob,
 		// consumers
 		events.NewInteractiveReadEventBatchConsumer,
+		// grpc
+		ioc.InitIntrGRPCClient,
 		// producers
 		article.NewKafkaProducer,
 		// dao 层
