@@ -15,7 +15,6 @@ import (
 	service2 "webookpro/interactive/service"
 	"webookpro/internal/ioc"
 	"webookpro/internal/repository"
-	article2 "webookpro/internal/repository/article"
 	"webookpro/internal/repository/cache"
 	"webookpro/internal/repository/dao"
 	"webookpro/internal/repository/dao/article"
@@ -44,23 +43,23 @@ func InitWebServer() *gin.Engine {
 	userHandler := web.NewUserHandler(userService, codeService, jwtHandler)
 	oauth2Service := ioc.InitWechatService()
 	oAuth2WechatHandler := web.NewOAuth2WechatHandler(oauth2Service, userService, jwtHandler)
-	engine := ioc.InitWebServer(v, userHandler, oAuth2WechatHandler)
+	engine := ioc.InitWebServer(v, userHandler, oAuth2WechatHandler, nil)
 	return engine
 }
 
 func InitArticleHandler(dao2 article.ArticleDAO) *web.ArticleHandler {
-	cmdable := InitRDB()
-	articleCache := cache.NewRedisArticleCache(cmdable)
-	logger := ioc.InitLogger()
-	articleRepository := article2.NewCachedArticleRepository(dao2, articleCache, logger)
-	articleServcie := service.NewArticleService(articleRepository)
-	db := InitDB()
-	interactiveDAO := dao3.NewGORMInteractiveDAO(db)
-	interactiveCache := cache2.NewRedisInteractiveCache(cmdable)
-	interactiveRepository := repository2.NewCachedIntrRepository(interactiveDAO, interactiveCache, logger)
-	interactiveService := service2.NewInteractiveService(interactiveRepository, logger)
-	articleHandler := web.NewArticleHandler(articleServcie, interactiveService, logger)
-	return articleHandler
+	//cmdable := InitRDB()
+	//articleCache := cache.NewRedisArticleCache(cmdable)
+	//logger := ioc.InitLogger()
+	//articleRepository := article2.NewCachedArticleRepository(dao2, articleCache, nil,logger)
+	//articleServcie := service.NewArticleService(articleRepository, nil, nil)
+	//db := InitDB()
+	//interactiveDAO := dao3.NewGORMInteractiveDAO(db)
+	//interactiveCache := cache2.NewRedisInteractiveCache(cmdable)
+	//interactiveRepository := repository2.NewCachedIntrRepository(interactiveDAO, interactiveCache, logger)
+	////interactiveService := service2.NewInteractiveService(interactiveRepository, logger)
+	//articleHandler := web.NewArticleHandler(articleServcie, nil,nil)
+	return nil
 }
 
 func InitInteractiveService() service2.InteractiveService {
