@@ -7,22 +7,61 @@ import (
 	"gorm.io/gorm"
 	"time"
 	dao2 "webookpro/interactive/repository/dao"
+	"webookpro/pkg/gormx/connpool"
 	"webookpro/pkg/logger"
 )
 
-func InitDB(l logger.Logger) *gorm.DB {
+type SrcDB *gorm.DB
+type DstDB *gorm.DB
+
+// InitSRC 初始化源库
+func InitSRC(l logger.Logger) SrcDB {
+	return InitDB(l, "src")
+}
+
+// InitDST 初始化目标库
+func InitDST(l logger.Logger) DstDB {
+	return InitDB(l, "dst")
+}
+
+// InitDoubleWritePool 初始化gorm的connpool，用于在初始化gorm时配置
+func InitDoubleWritePool(src SrcDB, dst DstDB) *connpool.DoubleWritePool {
+	pattern := viper.GetString("migrator.pattern")
+	return connpool.NewDoubleWritePool(src.ConnPool, dst.ConnPool, pattern)
+}
+
+// InitBizDB 这个是进行数据迁移时，业务用的，支持双写的 DB
+func InitBizDB(pool *connpool.DoubleWritePool) *gorm.DB {
+	db, err := gorm.Open(mysql.New(mysql.Config{
+		Conn: pool,
+	}))
+	if err != nil {
+		panic(err)
+	}
+	return db
+}
+
+// InitDB 初始化一个gormDB 通过一个key,区分加载配置文件中的哪个库的数据库dsn
+func InitDB(l logger.Logger, key string) *gorm.DB {
 	type Config struct {
 		DSN string `yaml:"dsn"`
 	}
 	var cfg = Config{
 		DSN: "root:root@tcp(localhost:13316)/webook_default",
 	}
-	err := viper.UnmarshalKey("db", &cfg)
+	err := viper.UnmarshalKey("db."+key, &cfg)
 	db, err := gorm.Open(mysql.Open(cfg.DSN), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
+	// 接入prometheus
+	//cb := newCallbacks(key)
+	//err = db.Use(cb)
+	//if err != nil {
+	//	panic(err)
+	//}
 
+	// 初始化表
 	err = dao2.InitTables(db)
 	if err != nil {
 		panic(err)
@@ -43,12 +82,12 @@ func (pcb *Callbacks) Initialize(db *gorm.DB) error {
 	return nil
 }
 
-func newCallbacks() *Callbacks {
+func newCallbacks(key string) *Callbacks {
 	vector := promsdk.NewSummaryVec(promsdk.SummaryOpts{
 		// 在这边，你要考虑设置各种 Namespace
 		Namespace: "geekbang_daming",
 		Subsystem: "webook",
-		Name:      "gorm_query_time",
+		Name:      "gorm_query_time_" + key,
 		Help:      "统计 GORM 的执行时间",
 		ConstLabels: map[string]string{
 			"db": "webook",

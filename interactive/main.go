@@ -1,4 +1,4 @@
-package interactive
+package main
 
 import (
 	"github.com/spf13/viper"
@@ -14,6 +14,10 @@ func main() {
 			panic(err)
 		}
 	}
+	go func() {
+		err := app.webAdmin.Start()
+		log.Println(err)
+	}()
 	err := app.server.Serve()
 	log.Println(err)
 }

@@ -7,9 +7,9 @@ import (
 	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
 	"time"
-	"webookpro/migrator"
-	"webookpro/migrator/events"
 	"webookpro/pkg/logger"
+	"webookpro/pkg/migrator"
+	"webookpro/pkg/migrator/events"
 )
 
 type Validator[T migrator.Entity] struct {
@@ -20,18 +20,48 @@ type Validator[T migrator.Entity] struct {
 	p         events.Producer
 	direction string               // DST or SRC ，判断是用原表去修还是目标表去修
 	highLoad  *atomicx.Value[bool] // 是否是高负载
+
+	utime         int64
+	sleepInterval time.Duration // <=0 说明直接退出校验循环 // > 0 真的 sleep
+	fromBase      func(ctx context.Context, offset int) (T, error)
 }
 
-func NewValidator[T migrator.Entity](base *gorm.DB, target *gorm.DB, l logger.Logger, p events.Producer, direction string) *Validator[T] {
+func NewValidator[T migrator.Entity](
+	base *gorm.DB,
+	target *gorm.DB,
+	direction string,
+	l logger.Logger,
+	p events.Producer,
+) *Validator[T] {
 	highLoad := atomicx.NewValueOf[bool](false)
 	go func() {
 		// 在这里，去查询数据库的状态
 		// 你的校验代码不太可能是性能瓶颈，性能瓶颈一般在数据库
 		// 你也可以结合本地的 CPU，内存负载来判定
 	}()
-	return &Validator[T]{base: base, target: target,
+	res := &Validator[T]{base: base, target: target,
 		l: l, p: p, direction: direction,
 		highLoad: highLoad}
+	res.fromBase = res.fullFromBase
+	return res
+}
+
+// SleepInterval 设置校验时，数据与数据之间的校验间隔
+func (v *Validator[T]) SleepInterval(i time.Duration) *Validator[T] {
+	v.sleepInterval = i
+	return v
+}
+
+// Utime 设置Validator的 utime，增量校验会从找base的utime之后的数据
+func (v *Validator[T]) Utime(utime int64) *Validator[T] {
+	v.utime = utime
+	return v
+}
+
+// Incr 修改从base中取数据的模式从全量校验切换为增量校验
+func (v *Validator[T]) Incr() *Validator[T] {
+	v.fromBase = v.intrFromBase
+	return v
 }
 
 // Validate 一次完整的全量校验
@@ -56,22 +86,22 @@ func (v *Validator[T]) validateBaseToTarget(ctx context.Context) {
 		if v.highLoad.Load() {
 			// 可以考虑挂起一段时间
 		}
-		// 进来就更新 offset，比较好控制
-		// 因为后面有很多的 continue 和 return
-		dbCtx, cancel := context.WithTimeout(ctx, time.Second)
-		offset++
-
 		// 先从源表中找一条数据 按照id的顺序找
 		var src T
-		err := v.base.WithContext(dbCtx).Offset(offset).Order("id").First(&src).Error
-		cancel()
+		src, err := v.fromBase(ctx, offset)
 		switch err {
+		case context.Canceled, context.DeadlineExceeded:
+			// 超时或者被人取消了
+			return
 		case nil:
 			// 源表中查到了数据，要去找对应目标表的数据
 			var dst T
 			// 注意这里如果没有id字段，那就找类似ctime这种排序是和插入顺序一样的字段
 			err = v.target.Where("id = ?", src.ID()).First(&dst).Error
 			switch err {
+			case context.Canceled, context.DeadlineExceeded:
+				// 超时或者被人取消了
+				return
 			case nil:
 				// 目标表数据找到了，开始比较
 				// 下面列举几种数据比较的方式
@@ -92,14 +122,21 @@ func (v *Validator[T]) validateBaseToTarget(ctx context.Context) {
 				v.l.Error("查询target数据失败", logger.Error(err))
 			}
 		case gorm.ErrRecordNotFound:
-			// 源表中找不到数据了， 说明都比完了，全量校验结束
-			return
+			// 源表中找不到数据了， 说明都比完了
+			// 我们是否要结束呢？注意，我们要同时支持数据全量校验和增量校验
+			// 校验是否继续取决于 用户，并且可以通过用户传入的sleepInterval控制
+			if v.sleepInterval <= 0 {
+				return
+			}
+			time.Sleep(v.sleepInterval)
+			continue
 		default:
 			// 数据库错误
 			v.l.Error("校验数据，查询 base 出错",
 				logger.Error(err))
 			continue
 		}
+		offset++
 	}
 }
 
@@ -109,21 +146,37 @@ func (v *Validator[T]) validateTargetToBase(ctx context.Context) {
 	// 先找 target，再找 base，找出 base 中已经被删除的
 	// 理论上来说，就是 target 里面一条条找
 	// 这这里我们可以采用批量的做法
-	offset := -v.batchSize
+	offset := 0
 	for {
-		offset = offset + v.batchSize
 		dbCtx, cancel := context.WithTimeout(ctx, time.Second)
 		// 取一批目标表中的数据
 		var dsts []T
-		err := v.target.WithContext(dbCtx).Select("id").
-			Offset(offset).Limit(v.batchSize).Order("id").
+		err := v.target.WithContext(dbCtx).
+			Where("utime > ?", v.utime).
+			Offset(offset).Limit(v.batchSize).Order("utime").
 			Find(&dsts).Error
 		cancel()
 		if len(dsts) == 0 {
 			// 说明目标表数据查完了， 校验结束
-			return
+			// 但是不能直接返回，返回还是继续校验由用户控制
+			if v.sleepInterval <= 0 {
+				return
+			}
+			time.Sleep(v.sleepInterval)
+			continue
 		}
 		switch err {
+		case context.Canceled, context.DeadlineExceeded:
+			// 超时或者被人取消了
+			return
+		// 正常来说，gorm 在 Find 方法接收的是切片的时候，不会返回 gorm.ErrRecordNotFound，这里是以防万一
+		case gorm.ErrRecordNotFound:
+			// 没数据了。直接返回
+			if v.sleepInterval <= 0 {
+				return
+			}
+			time.Sleep(v.sleepInterval)
+			continue
 		case nil:
 			// 目标表查到了一批数据
 			// 取到这批数据的id
@@ -137,6 +190,9 @@ func (v *Validator[T]) validateTargetToBase(ctx context.Context) {
 				v.notifyBaseMissing(ctx, ids)
 			}
 			switch err {
+			case context.Canceled, context.DeadlineExceeded:
+				// 超时或者被人取消了
+				return
 			case nil:
 				srcIds := slice.Map(srcs, func(idx int, t T) int64 {
 					return t.ID()
@@ -145,14 +201,18 @@ func (v *Validator[T]) validateTargetToBase(ctx context.Context) {
 				diff := slice.DiffSet(ids, srcIds)
 				v.notifyBaseMissing(ctx, diff)
 			default:
-				continue
+				// 日志
+				v.l.Error("查询target修数据，先查base时失败", logger.Error(err))
 			}
 		default:
-			continue
+			v.l.Error("查询target 失败", logger.Error(err))
 		}
+		offset += len(dsts)
 		if len(dsts) < v.batchSize {
-			// 没数据了
-			return
+			if v.sleepInterval <= 0 {
+				return
+			}
+			time.Sleep(v.sleepInterval)
 		}
 	}
 
@@ -182,4 +242,29 @@ func (v *Validator[T]) notifyBaseMissing(ctx context.Context, ids []int64) {
 	for _, id := range ids {
 		v.notify(ctx, id, events.InconsistentEventTypeBaseMissing)
 	}
+}
+
+// fullFromBase
+func (v *Validator[T]) fullFromBase(ctx context.Context, offset int) (T, error) {
+	dbCtx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	var src T
+	err := v.base.WithContext(dbCtx).
+		// 最好不要取等号
+		Offset(offset).
+		Order("id").First(&src).Error
+	return src, err
+}
+
+// intrFromBase
+func (v *Validator[T]) intrFromBase(ctx context.Context, offset int) (T, error) {
+	dbCtx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+	var src T
+	err := v.base.WithContext(dbCtx).
+		// 最好不要取等号
+		Where("utime > ?", v.utime).
+		Offset(offset).
+		Order("utime ASC, id ASC").First(&src).Error
+	return src, err
 }

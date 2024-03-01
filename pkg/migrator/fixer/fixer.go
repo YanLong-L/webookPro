@@ -1,12 +1,16 @@
 package fixer
 
+/*
+课堂演示的版本
+*/
+
 import (
 	"context"
 	"errors"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"webookpro/migrator"
-	"webookpro/migrator/events"
+	"webookpro/pkg/migrator"
+	"webookpro/pkg/migrator/events"
 )
 
 type Fixer[T migrator.Entity] struct {
@@ -16,7 +20,7 @@ type Fixer[T migrator.Entity] struct {
 }
 
 // Fix 最一了百了的写法 直接用base覆盖target
-func (f *Fixer[T]) Fix(ctx context.Context, evt events.InconsistentEvent) error {
+func (f *Fixer[T]) FixRight(ctx context.Context, evt events.InconsistentEvent) error {
 	var t T
 	err := f.base.WithContext(ctx).
 		Where("id =?", evt.ID).First(&t).Error

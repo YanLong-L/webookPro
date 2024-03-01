@@ -5,6 +5,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"time"
+	"webookpro/migrator"
 )
 
 //go:generate mockgen -source=./interactive.go -package=daomocks -destination=mocks/interactive.mock.go InteractiveDAO
@@ -191,6 +192,15 @@ type Interactive struct {
 	CollectCnt int64
 	Ctime      int64
 	Utime      int64
+}
+
+func (i Interactive) ID() int64 {
+	return i.Id
+}
+
+func (i Interactive) CompareTo(dst migrator.Entity) bool {
+	dstVal, ok := dst.(Interactive)
+	return ok && i == dstVal
 }
 
 // UserLikeBiz 用户点赞的某个东西

@@ -1,6 +1,7 @@
-package interactive
+package main
 
 import (
+	"webookpro/pkg/ginx"
 	"webookpro/pkg/grpcx"
 	"webookpro/pkg/saramax"
 )
@@ -10,4 +11,5 @@ type App struct {
 	// 核心就是为了控制生命周期
 	server    *grpcx.Server
 	consumers []saramax.Consumer
+	webAdmin  *ginx.Server // 用来管理数据迁移的几个接口
 }

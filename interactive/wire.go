@@ -1,6 +1,6 @@
 //go:build wireinject
 
-package interactive
+package main
 
 import (
 	"github.com/google/wire"
@@ -13,11 +13,23 @@ import (
 	"webookpro/interactive/service"
 )
 
-var thirdPartySet = wire.NewSet(ioc.InitDB,
+var thirdPartySet = wire.NewSet(
 	ioc.InitLogger,
 	ioc.InitKafka,
 	// 暂时不理会 consumer 怎么启动
-	ioc.InitRedis)
+	ioc.InitRedis,
+	// 下面是数据迁移用到的
+	ioc.InitDST,
+	ioc.InitSRC,
+	ioc.InitBizDB,
+	ioc.InitDoubleWritePool,
+	ioc.InitSyncProducer,
+)
+
+var migratorProvider = wire.NewSet(
+	ioc.InitMigratorWeb,
+	ioc.InitFixDataConsumer,
+	ioc.InitMigradatorProducer)
 
 var interactiveSvcProvider = wire.NewSet(
 	service.NewInteractiveService,
@@ -29,6 +41,7 @@ var interactiveSvcProvider = wire.NewSet(
 func InitAPP() *App {
 	wire.Build(interactiveSvcProvider,
 		thirdPartySet,
+		migratorProvider,
 		events.NewInteractiveReadEventConsumer,
 		grpc.NewInteractiveServiceServer,
 		ioc.NewConsumers,
