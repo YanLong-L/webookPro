@@ -10,7 +10,7 @@ import (
 )
 
 func TestGRPCClient(t *testing.T) {
-	cc, err := grpc.Dial("localhost:8080",
+	cc, err := grpc.Dial("localhost:8090",
 		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	require.NoError(t, err)
 	client := intrv1.NewInteractiveServiceClient(cc)

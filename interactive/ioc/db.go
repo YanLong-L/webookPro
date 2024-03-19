@@ -43,19 +43,20 @@ func InitBizDB(pool *connpool.DoubleWritePool) *gorm.DB {
 
 // InitDB 初始化一个gormDB 通过一个key,区分加载配置文件中的哪个库的数据库dsn
 func InitDB(l logger.Logger, key string) *gorm.DB {
-	type Config struct {
-		DSN string `yaml:"dsn"`
-	}
-	var cfg = Config{
-		DSN: "root:root@tcp(localhost:13316)/webook_default",
-	}
-	err := viper.UnmarshalKey("db."+key, &cfg)
-	db, err := gorm.Open(mysql.Open(cfg.DSN), &gorm.Config{})
+	//type Config struct {
+	//	DSN string `yaml:"dsn"`
+	//}
+	//var cfg = Config{
+	//	DSN: "root:root@tcp(localhost:13316)/webook_default",
+	//}
+	//err := viper.UnmarshalKey("db."+key, &cfg)
+	dsn := viper.GetString("db." + key + ".dsn")
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
 	// 接入prometheus
-	//cb := newCallbacks(key)
+	//000cb := newCallbacks(key)
 	//err = db.Use(cb)
 	//if err != nil {
 	//	panic(err)
